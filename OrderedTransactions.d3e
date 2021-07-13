@@ -1,0 +1,6 @@
+(DataQuery OrderedTransactions {
+    query `
+        Transaction.all.orderBy((t) => t.amount)
+    `
+    enableSync true
+})

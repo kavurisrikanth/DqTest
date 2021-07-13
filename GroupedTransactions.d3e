@@ -1,0 +1,32 @@
+(DataQuery GroupedTransactions {
+    inputs [
+        (amount {
+            type ({
+                primitive Double
+            })
+        })
+    ]
+    query `
+        Transaction.all.where((t) => t.amount >= inputs.amount).groupBy((t) => t.customer, (c, ts) => GTxn(
+            customer: c,
+            txns: ts.orderBy((t) => t.amount)
+        ))
+    `
+})
+
+(Struct GTxn {
+    server true
+    properties [
+        (customer {
+            type ({
+                model #Customer
+            })
+        })
+        (txns {
+            type ({
+                model #Transaction
+            })
+            collection true
+        })
+    ]
+})

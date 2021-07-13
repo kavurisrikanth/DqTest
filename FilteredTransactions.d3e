@@ -1,0 +1,13 @@
+(DataQuery FilteredTransactions {
+    inputs [
+        (amount {
+            type ({
+                primitive Double
+            })
+        })
+    ]
+    query `
+        Transaction.all.where((t) => t.amount >= inputs.amount)
+    `
+    enableSync true
+})

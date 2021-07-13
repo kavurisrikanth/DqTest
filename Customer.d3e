@@ -1,0 +1,23 @@
+(Model Customer {
+    creatable true
+    properties [
+        (name {
+            type ({
+                primitive String
+            })
+        })
+        (age {
+            type ({
+                primitive Integer
+            })
+        })
+        (transactions {
+            type ({
+                model #Transaction
+            })
+            collection true
+            inverse true
+            inverseProperty #customer
+        })
+    ]
+})

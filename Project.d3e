@@ -1,0 +1,8 @@
+(Project DqTest {
+    name 'DqTest'
+    domain 'dq.test'
+    package 'dq.test'
+    targets [
+        JavaBackEnd
+    ]
+})

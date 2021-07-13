@@ -1,0 +1,15 @@
+(Model Transaction {
+    creatable true
+    properties [
+        (customer {
+            type ({
+                model #Customer
+            })
+        })
+        (amount {
+            type ({
+                primitive Double
+            })
+        })
+    ]
+})

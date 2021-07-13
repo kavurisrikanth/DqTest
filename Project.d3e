@@ -1,7 +1,7 @@
-(Project DqTest {
-    name 'DqTest'
-    domain 'dq.test'
-    package 'dq.test'
+(Project DataQueryTest {
+    name 'DataQueryTest'
+    domain 'dataquery.test'
+    package 'dataquery.test'
     targets [
         JavaBackEnd
     ]

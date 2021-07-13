@@ -1,0 +1,6 @@
+(DataQuery AllTransactions {
+    query `
+        Transaction.all
+    `
+    enableSync true
+})

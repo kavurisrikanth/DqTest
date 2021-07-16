@@ -5,6 +5,7 @@ import models.Transaction;
 
 public class FilteredTransactions {
   public List<Transaction> items;
+  public long id;
 
   public FilteredTransactions() {}
 

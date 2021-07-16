@@ -5,6 +5,7 @@ import models.Transaction;
 
 public class OrderedTransactions {
   public List<Transaction> items;
+  public long id;
 
   public OrderedTransactions() {}
 

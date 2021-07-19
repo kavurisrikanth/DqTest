@@ -69,6 +69,7 @@ public class ModelSchema1 {
     DModel<Customer> m = getType2("Customer");
     m.addPrimitive("id", "_id", (s) -> s.getId(), (s, v) -> s.setId(v));
     m.addPrimitive("name", "_name", (s) -> s.getName(), (s, v) -> s.setName(v));
+    m.addPrimitive("gender", "_gender", (s) -> s.getGender(), (s, v) -> s.setGender(v));
     m.addPrimitive("age", "_age", (s) -> s.getAge(), (s, v) -> s.setAge(v));
     m.addInverseCollection(
         "transactions", "_customer_id", getType("Transaction"), (s) -> s.getTransactions());

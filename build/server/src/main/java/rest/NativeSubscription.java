@@ -13,6 +13,7 @@ import graphql.language.Field;
 import io.reactivex.rxjava3.core.Flowable;
 import java.util.HashMap;
 import java.util.List;
+import lists.AllCustomersSubscriptionHelper;
 import lists.AllTransactionsSubscriptionHelper;
 import lists.DataQueryChange;
 import lists.FilteredTransactionsSubscriptionHelper;
@@ -32,6 +33,7 @@ public class NativeSubscription extends AbstractQueryService {
   @Autowired private D3ESubscription subscription;
   @Autowired private IModelSchema schema;
   @Autowired private GqlToSql gqltosql;
+  @Autowired private ObjectFactory<AllCustomersSubscriptionHelper> allCustomers;
   @Autowired private ObjectFactory<AllTransactionsSubscriptionHelper> allTransactions;
   @Autowired private ObjectFactory<FilteredTransactionsSubscriptionHelper> filteredTransactions;
   @Autowired private ObjectFactory<OrderedTransactionsSubscriptionHelper> orderedTransactions;
@@ -196,6 +198,13 @@ public class NativeSubscription extends AbstractQueryService {
               .onUserSessionChangeEvent()
               .filter((e) -> ids.contains(e.model.getId()))
               .map((e) -> fromD3ESubscriptionEvent(e, field, "UserSession"));
+        }
+      case "onAllCustomersChange":
+        {
+          return allCustomers
+              .getObject()
+              .subscribe(inspect(field, "data.items"))
+              .map((e) -> fromDataQueryDataChange(e, field));
         }
       case "onAllTransactionsChange":
         {

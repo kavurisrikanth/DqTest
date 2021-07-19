@@ -6,6 +6,11 @@
                 primitive String
             })
         })
+        (gender {
+            type ({
+                optionSet #Gender
+            })
+        })
         (age {
             type ({
                 primitive Integer

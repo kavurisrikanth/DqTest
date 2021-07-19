@@ -1,0 +1,7 @@
+(OptionSet TransactionStatus {
+    options [
+        (Pending {})
+        (Approved {})
+        (Reverted {})
+    ]
+})

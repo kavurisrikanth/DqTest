@@ -9,6 +9,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
@@ -60,6 +61,7 @@ public class NativeQuery extends AbstractQueryService {
   @Autowired private UserSessionRepository userSessionRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private ObjectFactory<AppSessionProvider> provider;
+  @Autowired private AllCustomersImpl allCustomersImpl;
   @Autowired private AllTransactionsImpl allTransactionsImpl;
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;

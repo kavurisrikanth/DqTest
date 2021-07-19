@@ -1,10 +1,12 @@
 package models;
 
+import classes.Gender;
 import d3e.core.CloneContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import javax.persistence.Entity;
+import javax.persistence.Enumerated;
 import javax.persistence.ManyToMany;
 import org.apache.solr.client.solrj.beans.Field;
 import org.hibernate.annotations.ColumnDefault;
@@ -16,6 +18,10 @@ import store.ICloneable;
 @Entity
 public class Customer extends CreatableObject {
   @Field private String name;
+
+  @Field
+  @Enumerated(javax.persistence.EnumType.STRING)
+  private Gender gender = Gender.Male;
 
   @Field
   @ColumnDefault("0")
@@ -50,6 +56,15 @@ public class Customer extends CreatableObject {
   public void setName(String name) {
     onPropertySet();
     this.name = name;
+  }
+
+  public Gender getGender() {
+    return this.gender;
+  }
+
+  public void setGender(Gender gender) {
+    onPropertySet();
+    this.gender = gender;
   }
 
   public long getAge() {
@@ -96,6 +111,7 @@ public class Customer extends CreatableObject {
     super.deepCloneIntoObj(dbObj, ctx);
     Customer _obj = ((Customer) dbObj);
     _obj.setName(name);
+    _obj.setGender(gender);
     _obj.setAge(age);
     _obj.setTransactions(transactions);
   }
@@ -106,6 +122,7 @@ public class Customer extends CreatableObject {
     }
     super.cloneInstance(cloneObj);
     cloneObj.setName(this.getName());
+    cloneObj.setGender(this.getGender());
     cloneObj.setAge(this.getAge());
     cloneObj.setTransactions(new ArrayList<>(this.getTransactions()));
     return cloneObj;
@@ -113,6 +130,10 @@ public class Customer extends CreatableObject {
 
   public Customer createNewInstance() {
     return new Customer();
+  }
+
+  public boolean needOldObject() {
+    return true;
   }
 
   @Override

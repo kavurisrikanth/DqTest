@@ -1,17 +1,17 @@
 package lists;
 
-import classes.AllTransactions;
+import classes.AllCustomers;
 import classes.IdGenerator;
 import d3e.core.ListExt;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Cancellable;
 import java.util.List;
 import java.util.stream.Collectors;
-import models.Transaction;
+import models.Customer;
 import rest.ws.Template;
 import store.StoreEventType;
 
-public class AllTransactionsChangeTracker implements Cancellable {
+public class AllCustomersChangeTracker implements Cancellable {
   private long id;
   private List<Long> data;
   private DataChangeTracker tracker;
@@ -19,8 +19,8 @@ public class AllTransactionsChangeTracker implements Cancellable {
   private Template template;
   private List<Disposable> disposables = ListExt.List();
 
-  public AllTransactionsChangeTracker(
-      ChangesConsumer changesConsumer, DataChangeTracker tracker, AllTransactions initialData) {
+  public AllCustomersChangeTracker(
+      ChangesConsumer changesConsumer, DataChangeTracker tracker, AllCustomers initialData) {
     this.changesConsumer = changesConsumer;
     this.tracker = tracker;
     storeInitialData(initialData);
@@ -32,7 +32,7 @@ public class AllTransactionsChangeTracker implements Cancellable {
     disposables.forEach((d) -> d.dispose());
   }
 
-  private void storeInitialData(AllTransactions initialData) {
+  private void storeInitialData(AllCustomers initialData) {
     this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
@@ -45,11 +45,11 @@ public class AllTransactionsChangeTracker implements Cancellable {
     A listener is added by default on the Table from which we pull the data, since any change in that must trigger a subscription change.
     */
     Disposable baseSubscribe =
-        tracker.listen(0, null, (obj, type) -> applyTransaction(((Transaction) obj), type));
+        tracker.listen(0, null, (obj, type) -> applyCustomer(((Customer) obj), type));
     disposables.add(baseSubscribe);
   }
 
-  public void applyTransaction(Transaction model, StoreEventType type) {
+  public void applyCustomer(Customer model, StoreEventType type) {
     if (type == StoreEventType.Insert) {
       /*
       New data is inserted
@@ -65,7 +65,7 @@ public class AllTransactionsChangeTracker implements Cancellable {
       /*
       Existing data is updated
       */
-      Transaction old = model.getOld();
+      Customer old = model.getOld();
       if (old == null) {
         return;
       }
@@ -73,13 +73,13 @@ public class AllTransactionsChangeTracker implements Cancellable {
     }
   }
 
-  private void createInsertChange(Transaction model) {
+  private void createInsertChange(Customer model) {
     data.add(model.getId());
     ListChange insert = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(insert);
   }
 
-  private void createUpdateChange(Transaction model) {
+  private void createUpdateChange(Customer model) {
     long id = model.getId();
     if (!(data.contains(id))) {
       return;
@@ -88,7 +88,7 @@ public class AllTransactionsChangeTracker implements Cancellable {
     changesConsumer.writeListChange(update);
   }
 
-  private void createDeleteChange(Transaction model) {
+  private void createDeleteChange(Customer model) {
     long id = model.getId();
     if (!(data.contains(id))) {
       return;
@@ -96,5 +96,12 @@ public class AllTransactionsChangeTracker implements Cancellable {
     data.remove(id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
+  }
+
+  private List<NativeObj> createCustomerData(Customer customer) {
+    List<NativeObj> data = ListExt.List();
+    NativeObj row = new NativeObj(customer.getId());
+    data.add(row);
+    return data;
   }
 }

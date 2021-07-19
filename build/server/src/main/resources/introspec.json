@@ -182,6 +182,35 @@
 		},
 		{
 			"kind": "ENUM",
+			"name": "Gender",
+			"description": "",
+			"fields": null,
+			"inputFields": null,
+			"interfaces": null,
+			"enumValues": [
+				{
+					"name": "Male",
+					"description": "",
+					"isDeprecated": false,
+					"deprecationReason": null
+				},
+				{
+					"name": "Female",
+					"description": "",
+					"isDeprecated": false,
+					"deprecationReason": null
+				},
+				{
+					"name": "Other",
+					"description": "",
+					"isDeprecated": false,
+					"deprecationReason": null
+				}
+			],
+			"possibleTypes": null
+		},
+		{
+			"kind": "ENUM",
 			"name": "ChangeEventType",
 			"description": "",
 			"fields": null,
@@ -1691,6 +1720,20 @@
 					"deprecationReason": null
 				},
 				{
+					"name": "gender",
+					"description": "",
+					"args": [
+
+					],
+					"type": {
+						"kind": "ENUM",
+						"name": "Gender",
+						"ofType": null
+					},
+					"isDeprecated": false,
+					"deprecationReason": null
+				},
+				{
 					"name": "age",
 					"description": "",
 					"args": [
@@ -1763,6 +1806,20 @@
 					"type": {
 						"kind": "SCALAR",
 						"name": "String",
+						"ofType": null
+					},
+					"isDeprecated": false,
+					"deprecationReason": null
+				},
+				{
+					"name": "gender",
+					"description": "",
+					"args": [
+
+					],
+					"type": {
+						"kind": "ENUM",
+						"name": "Gender",
 						"ofType": null
 					},
 					"isDeprecated": false,

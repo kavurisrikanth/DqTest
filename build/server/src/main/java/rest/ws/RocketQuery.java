@@ -6,6 +6,7 @@ import d3e.core.D3ELogger;
 import gqltosql.GqlToSql;
 import graphql.language.Field;
 import java.util.UUID;
+import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
@@ -28,6 +29,7 @@ public class RocketQuery extends AbstractRocketQuery {
   @Autowired private ObjectFactory<AppSessionProvider> provider;
   @Autowired private JwtTokenUtil jwtTokenUtil;
   @Autowired private OneTimePasswordRepository oneTimePasswordRepository;
+  @Autowired private AllCustomersImpl allCustomersImpl;
   @Autowired private AllTransactionsImpl allTransactionsImpl;
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;

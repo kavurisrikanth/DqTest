@@ -178,6 +178,7 @@ type Customer
 	id : Long
 	localId : Long
 	name : String
+	gender : Gender
 	age : Long
 	transactions : [Transaction]
 }
@@ -186,6 +187,7 @@ input CustomerEntityInput
 {
 	id : Long
 	name : String
+	gender : Gender
 	age : Long
 }
 
@@ -404,6 +406,12 @@ enum MutateResultStatus {
 	AuthFail
 	ValidationFail
 	BadRequest
+}
+
+enum Gender {
+	Male
+	Female
+	Other
 }
 
 enum ChangeEventType {

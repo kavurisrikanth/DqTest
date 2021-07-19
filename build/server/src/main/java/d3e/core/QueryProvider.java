@@ -1,5 +1,6 @@
 package d3e.core;
 
+import classes.AllCustomers;
 import classes.AllTransactions;
 import classes.FilteredTransactions;
 import classes.FilteredTransactionsRequest;
@@ -9,6 +10,7 @@ import classes.LoginResult;
 import classes.OrderedTransactions;
 import java.util.Optional;
 import javax.annotation.PostConstruct;
+import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
@@ -46,6 +48,7 @@ public class QueryProvider {
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private UserSessionRepository userSessionRepository;
+  @Autowired private AllCustomersImpl allCustomersImpl;
   @Autowired private AllTransactionsImpl allTransactionsImpl;
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
@@ -83,6 +86,10 @@ public class QueryProvider {
   public Transaction getTransactionById(long id) {
     Optional<Transaction> findById = transactionRepository.findById(id);
     return findById.orElse(null);
+  }
+
+  public AllCustomers getAllCustomers() {
+    return allCustomersImpl.get();
   }
 
   public AllTransactions getAllTransactions() {

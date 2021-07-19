@@ -1,7 +1,7 @@
 package lists;
 
-import classes.AllTransactions;
 import classes.IdGenerator;
+import classes.OrderedTransactions;
 import d3e.core.ListExt;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Cancellable;
@@ -11,7 +11,7 @@ import models.Transaction;
 import rest.ws.Template;
 import store.StoreEventType;
 
-public class AllTransactionsChangeTracker implements Cancellable {
+public class OrderedTransactionsChangeTracker implements Cancellable {
   private long id;
   private List<Long> data;
   private DataChangeTracker tracker;
@@ -19,8 +19,8 @@ public class AllTransactionsChangeTracker implements Cancellable {
   private Template template;
   private List<Disposable> disposables = ListExt.List();
 
-  public AllTransactionsChangeTracker(
-      ChangesConsumer changesConsumer, DataChangeTracker tracker, AllTransactions initialData) {
+  public OrderedTransactionsChangeTracker(
+      ChangesConsumer changesConsumer, DataChangeTracker tracker, OrderedTransactions initialData) {
     this.changesConsumer = changesConsumer;
     this.tracker = tracker;
     storeInitialData(initialData);
@@ -32,7 +32,7 @@ public class AllTransactionsChangeTracker implements Cancellable {
     disposables.forEach((d) -> d.dispose());
   }
 
-  private void storeInitialData(AllTransactions initialData) {
+  private void storeInitialData(OrderedTransactions initialData) {
     this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
@@ -96,5 +96,15 @@ public class AllTransactionsChangeTracker implements Cancellable {
     data.remove(id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
+  }
+
+  private List<NativeObj> createTransactionData(Transaction transaction) {
+    List<NativeObj> data = ListExt.List();
+    NativeObj row = new NativeObj(2);
+    row.set(0, transaction.getAmount());
+    row.set(1, transaction.getId());
+    row.setId(1);
+    data.add(row);
+    return data;
   }
 }

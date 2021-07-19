@@ -1,0 +1,7 @@
+(OptionSet Gender {
+    options [
+        (Male {})
+        (Female {})
+        (Other {})
+    ]
+})

@@ -1,5 +1,6 @@
 package helpers;
 
+import classes.Gender;
 import models.Customer;
 import models.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class CustomerEntityHelper<T extends Customer> implements EntityHelper<T>
   public void fromInput(T entity, GraphQLInputContext ctx) {
     if (ctx.has("name")) {
       entity.setName(ctx.readString("name"));
+    }
+    if (ctx.has("gender")) {
+      entity.setGender(ctx.readEnum("gender", Gender.class));
     }
     if (ctx.has("age")) {
       entity.setAge(ctx.readInteger("age"));

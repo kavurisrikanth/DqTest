@@ -4,8 +4,8 @@ import java.util.List;
 import models.Transaction;
 
 public class FilteredTransactions {
-  public List<Transaction> items;
   public long id;
+  public List<Transaction> items;
 
   public FilteredTransactions() {}
 

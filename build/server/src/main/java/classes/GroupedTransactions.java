@@ -4,7 +4,6 @@ import java.util.List;
 
 public class GroupedTransactions {
   public List<GTxn> items;
-  public long id;
 
   public GroupedTransactions() {}
 

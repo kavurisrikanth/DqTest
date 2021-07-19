@@ -5,6 +5,7 @@ import models.Customer;
 import models.Transaction;
 
 public class GTxn {
+  public long id;
   public Customer customer;
   public List<Transaction> txns;
 

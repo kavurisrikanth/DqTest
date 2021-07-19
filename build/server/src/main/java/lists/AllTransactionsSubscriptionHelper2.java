@@ -11,14 +11,9 @@ import org.springframework.stereotype.Component;
 import classes.AllTransactions;
 import classes.IdGenerator;
 import d3e.core.CurrentUser;
-import d3e.core.D3ESubscription;
 import d3e.core.ListExt;
 import d3e.core.TransactionWrapper;
 import graphql.language.Field;
-import io.reactivex.rxjava3.core.BackpressureStrategy;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.FlowableEmitter;
-import io.reactivex.rxjava3.core.FlowableOnSubscribe;
 import io.reactivex.rxjava3.disposables.Disposable;
 import models.Transaction;
 import models.User;
@@ -27,12 +22,9 @@ import store.StoreEventType;
 
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class AllTransactionsSubscriptionHelper2 implements FlowableOnSubscribe<DataQueryDataChange> {
+public class AllTransactionsSubscriptionHelper2 {
   @Autowired private TransactionWrapper transactional;
   @Autowired private AllTransactionsImpl allTransactionsImpl;
-  @Autowired private D3ESubscription subscription;
-  private Flowable<DataQueryDataChange> flowable;
-  private FlowableEmitter<DataQueryDataChange> emitter;
   private List<Disposable> disposables = ListExt.List();
   private Field field;
 
@@ -46,11 +38,10 @@ public class AllTransactionsSubscriptionHelper2 implements FlowableOnSubscribe<D
     // TODO Auto-generated constructor stub
     this.changesConsumer = changesConsumer;
   }
-
-  @Override
-  public void subscribe(FlowableEmitter<DataQueryDataChange> emitter) throws Throwable {
-    this.emitter = emitter;
-    transactional.doInTransaction(this::init);
+  
+  public void cancel() {
+    // Maybe call this method to cancel the subscription?
+    disposables.forEach((d) -> d.dispose());
   }
 
   private void loadInitialData() {
@@ -75,16 +66,15 @@ public class AllTransactionsSubscriptionHelper2 implements FlowableOnSubscribe<D
   private void init() {
     loadInitialData();
     addSubscriptions();
-    emitter.setCancellable(() -> disposables.forEach((d) -> d.dispose()));
+//    emitter.setCancellable(() -> disposables.forEach((d) -> d.dispose()));
   }
 
-  public Flowable<DataQueryDataChange> subscribe(Field field) {
+  public void subscribe(Field field) throws Throwable {
     {
       User currentUser = CurrentUser.get();
     }
     this.field = field;
-    this.flowable = Flowable.create(this, BackpressureStrategy.BUFFER);
-    return this.flowable;
+    transactional.doInTransaction(this::init);
   }
 
   private void addSubscriptions() {

@@ -3,40 +3,30 @@ package lists;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
-
 import classes.AllTransactions;
 import classes.IdGenerator;
-import d3e.core.CurrentUser;
 import d3e.core.ListExt;
-import d3e.core.TransactionWrapper;
-import graphql.language.Field;
 import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Cancellable;
 import models.Transaction;
-import models.User;
 import rest.ws.Template;
 import store.StoreEventType;
 
-@Component
-@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class AllTransactionsSubscriptionHelper2 {
-  @Autowired private TransactionWrapper transactional;
-  @Autowired private AllTransactionsImpl allTransactionsImpl;
+public class AllTransactionsSubscriptionHelper2 implements Cancellable {
   private List<Disposable> disposables = ListExt.List();
-  private Field field;
 
   private long id;
   private List<Long> data;
-  @Autowired private DataChangeTracker tracker;
+  private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
   
-  public AllTransactionsSubscriptionHelper2(ChangesConsumer changesConsumer) {
+  public AllTransactionsSubscriptionHelper2(ChangesConsumer changesConsumer, DataChangeTracker tracker, AllTransactions initialData) {
     // TODO Auto-generated constructor stub
     this.changesConsumer = changesConsumer;
+    this.tracker = tracker;
+    loadInitialData(initialData);
+    addSubscriptions();
   }
   
   public void cancel() {
@@ -44,12 +34,11 @@ public class AllTransactionsSubscriptionHelper2 {
     disposables.forEach((d) -> d.dispose());
   }
 
-  private void loadInitialData() {
-    AllTransactions result = allTransactionsImpl.get();
-    this.data = result.items.stream().map(x -> x.getId()).collect(Collectors.toList());
+  private void loadInitialData(AllTransactions initialData) {
+    this.data = initialData.items.stream().map(x -> x.getId()).collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
-    result.id = id;
+    initialData.id = id;
     
     ObjectChange basic = new ObjectChange();
     basic.id = id;
@@ -61,20 +50,6 @@ public class AllTransactionsSubscriptionHelper2 {
     basic.changes = ListExt.asList(ch);
     
     changesConsumer.writeObjectChange(basic);
-  }
-
-  private void init() {
-    loadInitialData();
-    addSubscriptions();
-//    emitter.setCancellable(() -> disposables.forEach((d) -> d.dispose()));
-  }
-
-  public void subscribe(Field field) throws Throwable {
-    {
-      User currentUser = CurrentUser.get();
-    }
-    this.field = field;
-    transactional.doInTransaction(this::init);
   }
 
   private void addSubscriptions() {
@@ -112,18 +87,8 @@ public class AllTransactionsSubscriptionHelper2 {
 
   private void createInsertChange(Transaction model) {
     data.add(model.getId());
-    ListChange ins = createListChange(model);
+    ListChange ins = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(ins);
-  }
-
-  private ListChange createListChange(Transaction model) {
-    ListChange ins = new ListChange();
-    ins.id = this.id;
-    ins.type = -1;  // AllTransactions type
-    ins.field = -1; // items field
-    // TODO: Add change type
-    ins.obj = model;
-    return ins;
   }
 
   private void createUpdateChange(Transaction model) {
@@ -131,7 +96,7 @@ public class AllTransactionsSubscriptionHelper2 {
     if (!data.contains(id)) {
       return;
     }
-    ListChange upd = createListChange(model);
+    ListChange upd = new ListChange(this.id, -1, -1, ListChangeType.Changed, model);
     changesConsumer.writeListChange(upd);
   }
 
@@ -141,7 +106,7 @@ public class AllTransactionsSubscriptionHelper2 {
       return;
     }
     data.remove(id);
-    ListChange del = createListChange(model);
+    ListChange del = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(del);
   }
 }

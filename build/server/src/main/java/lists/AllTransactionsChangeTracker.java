@@ -12,44 +12,33 @@ import models.Transaction;
 import rest.ws.Template;
 import store.StoreEventType;
 
-public class AllTransactionsSubscriptionHelper2 implements Cancellable {
-  private List<Disposable> disposables = ListExt.List();
-
+public class AllTransactionsChangeTracker implements Cancellable {
   private long id;
   private List<Long> data;
   private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
+  private List<Disposable> disposables = ListExt.List();
   
-  public AllTransactionsSubscriptionHelper2(ChangesConsumer changesConsumer, DataChangeTracker tracker, AllTransactions initialData) {
+  public AllTransactionsChangeTracker(ChangesConsumer changesConsumer, DataChangeTracker tracker, AllTransactions initialData) {
     // TODO Auto-generated constructor stub
     this.changesConsumer = changesConsumer;
     this.tracker = tracker;
-    loadInitialData(initialData);
+    storeInitialData(initialData);
     addSubscriptions();
   }
   
+  @Override
   public void cancel() {
     // Maybe call this method to cancel the subscription?
     disposables.forEach((d) -> d.dispose());
   }
 
-  private void loadInitialData(AllTransactions initialData) {
+  private void storeInitialData(AllTransactions initialData) {
     this.data = initialData.items.stream().map(x -> x.getId()).collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
     initialData.id = id;
-    
-    ObjectChange basic = new ObjectChange();
-    basic.id = id;
-    // TODO
-    basic.type = 0;
-    Change ch = new Change();
-    ch.field = -1;  //items
-    ch.value = basic.changes;
-    basic.changes = ListExt.asList(ch);
-    
-    changesConsumer.writeObjectChange(basic);
   }
 
   private void addSubscriptions() {

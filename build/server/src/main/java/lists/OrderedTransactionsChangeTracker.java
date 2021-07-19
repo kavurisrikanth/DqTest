@@ -14,6 +14,7 @@ import store.StoreEventType;
 public class OrderedTransactionsChangeTracker implements Cancellable {
   private long id;
   private List<Long> data;
+  private List<Double> _orderBy0;
   private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;

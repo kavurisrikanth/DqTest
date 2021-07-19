@@ -1,97 +1,54 @@
 package lists;
 
-import classes.AllTransactions;
-import classes.IdGenerator;
-import classes.OrderedTransactions;
-import classes.SubscriptionChangeType;
-import d3e.core.CurrentUser;
-import d3e.core.D3ESubscription;
-import d3e.core.D3ESubscriptionEvent;
-import d3e.core.ListExt;
-import d3e.core.MapExt;
-import d3e.core.TransactionWrapper;
-import graphql.language.Field;
-import io.reactivex.rxjava3.core.BackpressureStrategy;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.FlowableEmitter;
-import io.reactivex.rxjava3.core.FlowableOnSubscribe;
-import io.reactivex.rxjava3.disposables.Disposable;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
-
-import models.Transaction;
-import models.User;
-import rest.ws.Template;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import classes.IdGenerator;
+import classes.OrderedTransactions;
+import d3e.core.ListExt;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Cancellable;
+import models.Transaction;
+import rest.ws.Template;
 import store.StoreEventType;
 
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class OrderedTransactionsSubscriptionHelper2
-    implements FlowableOnSubscribe<DataQueryDataChange> {
-  @Autowired private TransactionWrapper transactional;
-  @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
-  @Autowired private D3ESubscription subscription;
-  private Flowable<DataQueryDataChange> flowable;
-  private FlowableEmitter<DataQueryDataChange> emitter;
-  private List<Disposable> disposables = ListExt.List();
-  private Field field;
-  
+public class OrderedTransactionsSubscriptionHelper2 implements Cancellable {
   private long id;
   private List<Long> data;
   private List<Double> orderBy;
   @Autowired private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
-
+  private List<Disposable> disposables = ListExt.List();
+  
+  public OrderedTransactionsSubscriptionHelper2(
+      ChangesConsumer changesConsumer, DataChangeTracker tracker, OrderedTransactions initialData) {
+    this.changesConsumer = changesConsumer;
+    this.tracker = tracker;
+    storeInitialData(initialData);
+    addSubscriptions();
+  }
+  
   @Override
-  public void subscribe(FlowableEmitter<DataQueryDataChange> emitter) throws Throwable {
-    this.emitter = emitter;
-    transactional.doInTransaction(this::init);
+  public void cancel() throws Throwable {
+    // TODO Auto-generated method stub
+    disposables.forEach((d) -> d.dispose());
   }
 
-  private void loadInitialData() {
-    OrderedTransactions result = orderedTransactionsImpl.get();
-    this.data = result.items.stream().map(x -> x.getId()).collect(Collectors.toList());
-    this.orderBy = result.items.stream().map(x -> x.getAmount()).collect(Collectors.toList());
+  private void storeInitialData(OrderedTransactions initialData) {
+    this.data = initialData.items.stream().map(x -> x.getId()).collect(Collectors.toList());
+    this.orderBy = initialData.items.stream().map(x -> x.getAmount()).collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
-    result.id = id;
-    
-    ObjectChange basic = new ObjectChange();
-    basic.id = id;
-    // TODO
-    basic.type = 0;
-    Change ch = new Change();
-    ch.field = -1;  //items
-    ch.value = basic.changes;
-    basic.changes = ListExt.asList(ch);
-    
-    changesConsumer.writeObjectChange(basic);
-  }
-
-  private void init() {
-    loadInitialData();
-    addSubscriptions();
-    emitter.setCancellable(() -> disposables.forEach((d) -> d.dispose()));
-  }
-
-  public Flowable<DataQueryDataChange> subscribe(Field field) {
-    {
-      User currentUser = CurrentUser.get();
-    }
-    this.field = field;
-    this.flowable = Flowable.create(this, BackpressureStrategy.BUFFER);
-    return this.flowable;
+    initialData.id = id;
   }
 
   private void addSubscriptions() {

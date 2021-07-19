@@ -5,6 +5,7 @@ import classes.OrderedTransactions;
 import d3e.core.ListExt;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Cancellable;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import models.Transaction;
@@ -35,6 +36,8 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
 
   private void storeInitialData(OrderedTransactions initialData) {
     this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
+    this._orderBy0 =
+        initialData.items.stream().map((x) -> x.getAmount()).collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
     initialData.id = id;
@@ -70,7 +73,9 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
       if (old == null) {
         return;
       }
-      createUpdateChange(model);
+      if (!(createPathChangeChange(model, old))) {
+        createUpdateChange(model);
+      }
     }
   }
 
@@ -97,5 +102,26 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
     data.remove(id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
+  }
+
+  private boolean createPathChangeChange(Transaction model, Transaction old) {
+    boolean changed = old.getAmount() != model.getAmount();
+    if (!(changed)) {
+      return false;
+    }
+    long id = model.getId();
+    if (!(data.contains(id))) {
+      return false;
+    }
+    long index = this.data.indexOf(id);
+    double _orderBy0 = model.getAmount();
+    long newIndex = this._orderBy0.stream().filter((x) -> x <= _orderBy0).count();
+    Collections.swap(data, ((int) index), ((int) newIndex));
+    Collections.swap(this._orderBy0, ((int) index), ((int) newIndex));
+    ListChange change =
+        ListChange.forPathChange(
+            id, -1, -1, ListChangeType.Changed, ((int) index), ((int) newIndex));
+    this.changesConsumer.writeListChange(change);
+    return true;
   }
 }

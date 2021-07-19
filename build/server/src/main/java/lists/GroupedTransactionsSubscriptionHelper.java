@@ -163,13 +163,15 @@ public class GroupedTransactionsSubscriptionHelper {
     long newIndex = currentGroup.order.stream().filter(x -> x <= _orderBy0).count();
     currentGroup.order.add((int) newIndex, _orderBy0);
     currentGroup.data.add((int) newIndex, id);
+    ListChange change = createListChange(model);
     this.changesConsumer.writeListChange(change);
     return true;
   }
 
   private void createUpdateChange(Transaction model) {
     long id = model.getId();
-    if (!data.contains(id)) {
+    GTxnData currentGroup = this.data.stream().filter(x -> x.customer == id).findFirst().orElse(null);
+    if (currentGroup == null) {
       return;
     }
     ListChange upd = createListChange(model);
@@ -178,18 +180,21 @@ public class GroupedTransactionsSubscriptionHelper {
 
   private void createDeleteChange(Transaction model) {
     long id = model.getId();
-    if (!data.contains(id)) {
+    GTxnData currentGroup = this.data.stream().filter(x -> x.customer == id).findFirst().orElse(null);
+    if (currentGroup == null) {
       return;
     }
-    data.remove(id);
+    int index = currentGroup.data.indexOf(id);
+    currentGroup.data.remove(index);
+    currentGroup.order.remove(index);
     ListChange del = createListChange(model);
     changesConsumer.writeListChange(del);
   }
   
   private void applyCustomer(Customer model, StoreEventType type) {
     // TODO Auto-generated method stub
+    // Only for update
+    // Not applicable in this case, since id will not change.
     return;
   }
-  
-  
 }

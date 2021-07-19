@@ -97,11 +97,4 @@ public class AllCustomersChangeTracker implements Cancellable {
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
   }
-
-  private List<NativeObj> createCustomerData(Customer customer) {
-    List<NativeObj> data = ListExt.List();
-    NativeObj row = new NativeObj(customer.getId());
-    data.add(row);
-    return data;
-  }
 }

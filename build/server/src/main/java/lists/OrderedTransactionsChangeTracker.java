@@ -97,14 +97,4 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
   }
-
-  private List<NativeObj> createTransactionData(Transaction transaction) {
-    List<NativeObj> data = ListExt.List();
-    NativeObj row = new NativeObj(2);
-    row.set(0, transaction.getAmount());
-    row.set(1, transaction.getId());
-    row.setId(1);
-    data.add(row);
-    return data;
-  }
 }

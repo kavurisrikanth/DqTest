@@ -1,6 +1,7 @@
 package lists;
 
 import classes.FilteredTransactions;
+import classes.FilteredTransactionsRequest;
 import classes.IdGenerator;
 import d3e.core.ListExt;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -18,6 +19,7 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
   private ChangesConsumer changesConsumer;
   private Template template;
   private List<Disposable> disposables = ListExt.List();
+  private FilteredTransactionsRequest inputs;
 
   public FilteredTransactionsChangeTracker(
       ChangesConsumer changesConsumer,
@@ -57,7 +59,9 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
       New data is inserted
       So we just insert the new data depending on the clauses.
       */
-      createInsertChange(model);
+      if (applyWhere(model)) {
+        createInsertChange(model);
+      }
     } else if (type == StoreEventType.Delete) {
       /*
       Existing data is deleted
@@ -72,7 +76,7 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
         return;
       }
       boolean currentMatch = applyWhere(model);
-      boolean oldMatch = applyWhere(old);
+      boolean oldMatch = this.data.contains(old.getId());
       if (currentMatch == oldMatch) {
         if (!(currentMatch) && !(oldMatch)) {
           return;
@@ -87,6 +91,10 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
         }
       }
     }
+  }
+
+  private boolean applyWhere(Transaction model) {
+    return model.getAmount() >= inputs.amount;
   }
 
   private void createInsertChange(Transaction model) {
@@ -112,15 +120,5 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
     data.remove(id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
-  }
-
-  private List<NativeObj> createTransactionData(Transaction transaction) {
-    List<NativeObj> data = ListExt.List();
-    NativeObj row = new NativeObj(2);
-    row.set(0, transaction.getAmount());
-    row.set(1, transaction.getId());
-    row.setId(1);
-    data.add(row);
-    return data;
   }
 }

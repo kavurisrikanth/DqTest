@@ -8,6 +8,7 @@ import graphql.language.Field;
 import java.util.UUID;
 import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
+import lists.FemaleTransactionsOrderByAmountAndAgeImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
 import lists.OrderedFilteredTransactionsImpl;
@@ -32,10 +33,14 @@ public class RocketQuery extends AbstractRocketQuery {
   @Autowired private OneTimePasswordRepository oneTimePasswordRepository;
   @Autowired private AllCustomersImpl allCustomersImpl;
   @Autowired private AllTransactionsImpl allTransactionsImpl;
+
+  @Autowired
+  private FemaleTransactionsOrderByAmountAndAgeImpl femaleTransactionsOrderByAmountAndAgeImpl;
+
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
-  @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
   @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
+  @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
 
   protected QueryResult executeOperation(String query, Field field, RocketInputContext ctx)
       throws Exception {

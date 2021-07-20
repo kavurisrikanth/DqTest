@@ -16,6 +16,7 @@ import java.util.List;
 import lists.AllCustomersSubscriptionHelper;
 import lists.AllTransactionsSubscriptionHelper;
 import lists.DataQueryChange;
+import lists.FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper;
 import lists.FilteredTransactionsSubscriptionHelper;
 import lists.OrderedFilteredTransactionsSubscriptionHelper;
 import lists.OrderedTransactionsSubscriptionHelper;
@@ -36,11 +37,17 @@ public class NativeSubscription extends AbstractQueryService {
   @Autowired private GqlToSql gqltosql;
   @Autowired private ObjectFactory<AllCustomersSubscriptionHelper> allCustomers;
   @Autowired private ObjectFactory<AllTransactionsSubscriptionHelper> allTransactions;
+
+  @Autowired
+  private ObjectFactory<FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper>
+      femaleTransactionsOrderByAmountAndAge;
+
   @Autowired private ObjectFactory<FilteredTransactionsSubscriptionHelper> filteredTransactions;
-  @Autowired private ObjectFactory<OrderedTransactionsSubscriptionHelper> orderedTransactions;
 
   @Autowired
   private ObjectFactory<OrderedFilteredTransactionsSubscriptionHelper> orderedFilteredTransactions;
+
+  @Autowired private ObjectFactory<OrderedTransactionsSubscriptionHelper> orderedTransactions;
 
   public Flowable<JSONObject> subscribe(JSONObject req) throws Exception {
     List<Field> fields = parseFields(req);
@@ -217,6 +224,13 @@ public class NativeSubscription extends AbstractQueryService {
               .subscribe(inspect(field, "data.items"))
               .map((e) -> fromDataQueryDataChange(e, field));
         }
+      case "onFemaleTransactionsOrderByAmountAndAgeChange":
+        {
+          return femaleTransactionsOrderByAmountAndAge
+              .getObject()
+              .subscribe(inspect(field, "data.items"))
+              .map((e) -> fromDataQueryDataChange(e, field));
+        }
       case "onFilteredTransactionsChange":
         {
           FilteredTransactionsRequest req = ctx.readInto("in", new FilteredTransactionsRequest());
@@ -225,16 +239,16 @@ public class NativeSubscription extends AbstractQueryService {
               .subscribe(inspect(field, "data.items"), req)
               .map((e) -> fromDataQueryDataChange(e, field));
         }
-      case "onOrderedTransactionsChange":
+      case "onOrderedFilteredTransactionsChange":
         {
-          return orderedTransactions
+          return orderedFilteredTransactions
               .getObject()
               .subscribe(inspect(field, "data.items"))
               .map((e) -> fromDataQueryDataChange(e, field));
         }
-      case "onOrderedFilteredTransactionsChange":
+      case "onOrderedTransactionsChange":
         {
-          return orderedFilteredTransactions
+          return orderedTransactions
               .getObject()
               .subscribe(inspect(field, "data.items"))
               .map((e) -> fromDataQueryDataChange(e, field));

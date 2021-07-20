@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.UUID;
 import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
+import lists.FemaleTransactionsOrderByAmountAndAgeImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
 import lists.OrderedFilteredTransactionsImpl;
@@ -64,10 +65,14 @@ public class NativeQuery extends AbstractQueryService {
   @Autowired private ObjectFactory<AppSessionProvider> provider;
   @Autowired private AllCustomersImpl allCustomersImpl;
   @Autowired private AllTransactionsImpl allTransactionsImpl;
+
+  @Autowired
+  private FemaleTransactionsOrderByAmountAndAgeImpl femaleTransactionsOrderByAmountAndAgeImpl;
+
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
-  @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
   @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
+  @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
 
   @PostMapping(path = "/query", produces = MediaType.APPLICATION_JSON_VALUE)
   public String run(@RequestBody String query) throws Exception {

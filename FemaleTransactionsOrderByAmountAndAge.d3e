@@ -1,0 +1,6 @@
+(DataQuery FemaleTransactionsOrderByAmountAndAge {
+    query `
+        Transaction.all.where((t) => t.customer.gender == Female).orderBy((t) => t.amount).orderBy((t) => t.customer.age, asc: false)
+    `
+    enableSync true
+})

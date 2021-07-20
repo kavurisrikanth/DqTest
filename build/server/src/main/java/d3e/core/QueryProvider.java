@@ -2,6 +2,7 @@ package d3e.core;
 
 import classes.AllCustomers;
 import classes.AllTransactions;
+import classes.FemaleTransactionsOrderByAmountAndAge;
 import classes.FilteredTransactions;
 import classes.FilteredTransactionsRequest;
 import classes.GroupedTransactions;
@@ -13,6 +14,7 @@ import java.util.Optional;
 import javax.annotation.PostConstruct;
 import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
+import lists.FemaleTransactionsOrderByAmountAndAgeImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
 import lists.OrderedFilteredTransactionsImpl;
@@ -52,10 +54,14 @@ public class QueryProvider {
   @Autowired private UserSessionRepository userSessionRepository;
   @Autowired private AllCustomersImpl allCustomersImpl;
   @Autowired private AllTransactionsImpl allTransactionsImpl;
+
+  @Autowired
+  private FemaleTransactionsOrderByAmountAndAgeImpl femaleTransactionsOrderByAmountAndAgeImpl;
+
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
-  @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
   @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
+  @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
   @Autowired private ObjectFactory<AppSessionProvider> provider;
 
   @PostConstruct
@@ -99,6 +105,10 @@ public class QueryProvider {
     return allTransactionsImpl.get();
   }
 
+  public FemaleTransactionsOrderByAmountAndAge getFemaleTransactionsOrderByAmountAndAge() {
+    return femaleTransactionsOrderByAmountAndAgeImpl.get();
+  }
+
   public FilteredTransactions getFilteredTransactions(FilteredTransactionsRequest inputs) {
     return filteredTransactionsImpl.get(inputs);
   }
@@ -107,12 +117,12 @@ public class QueryProvider {
     return groupedTransactionsImpl.get(inputs);
   }
 
-  public OrderedTransactions getOrderedTransactions() {
-    return orderedTransactionsImpl.get();
-  }
-
   public OrderedFilteredTransactions getOrderedFilteredTransactions() {
     return orderedFilteredTransactionsImpl.get();
+  }
+
+  public OrderedTransactions getOrderedTransactions() {
+    return orderedTransactionsImpl.get();
   }
 
   public LoginResult loginWithOTP(String token, String code, String deviceToken) {

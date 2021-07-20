@@ -13,9 +13,33 @@ import rest.ws.Template;
 import store.StoreEventType;
 
 public class OrderedTransactionsChangeTracker implements Cancellable {
+  private class OrderBy {
+    double _orderBy0;
+    long id;
+
+    public OrderBy(double _orderBy0, long id) {
+      this._orderBy0 = _orderBy0;
+      this.id = id;
+    }
+
+    public boolean fallsBefore(double _orderBy0) {
+      if (this._orderBy0 < _orderBy0) {
+        return true;
+      }
+      if (this._orderBy0 > _orderBy0) {
+        return false;
+      }
+      return true;
+    }
+
+    public void update(double _orderBy0) {
+      this._orderBy0 = _orderBy0;
+    }
+  }
+
   private long id;
   private List<Long> data;
-  private List<Double> _orderBy0;
+  private List<OrderBy> orderBy = ListExt.List();
   private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
@@ -36,8 +60,10 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
 
   private void storeInitialData(OrderedTransactions initialData) {
     this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
-    this._orderBy0 =
-        initialData.items.stream().map((x) -> x.getAmount()).collect(Collectors.toList());
+    this.orderBy =
+        initialData.items.stream()
+            .map((x) -> new OrderBy(x.getAmount(), x.getId()))
+            .collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
     initialData.id = id;
@@ -80,7 +106,15 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
   }
 
   private void createInsertChange(Transaction model) {
-    data.add(model.getId());
+    long id = model.getId();
+    double _orderBy0 = model.getAmount();
+    long index = 0;
+    int orderBySize = this.orderBy.size();
+    while (index < orderBySize && this.orderBy.get(((int) index)).fallsBefore(_orderBy0)) {
+      index++;
+    }
+    data.add(((int) index), id);
+    this.orderBy.add(((int) index), new OrderBy(_orderBy0, id));
     ListChange insert = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(insert);
   }
@@ -100,6 +134,7 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
       return;
     }
     data.remove(id);
+    ListExt.removeWhere(this.orderBy, (x) -> x.id == id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
   }
@@ -113,11 +148,16 @@ public class OrderedTransactionsChangeTracker implements Cancellable {
     if (!(data.contains(id))) {
       return false;
     }
-    long index = this.data.indexOf(id);
+    int index = this.data.indexOf(id);
     double _orderBy0 = model.getAmount();
-    long newIndex = this._orderBy0.stream().filter((x) -> x <= _orderBy0).count();
-    Collections.swap(data, ((int) index), ((int) newIndex));
-    Collections.swap(this._orderBy0, ((int) index), ((int) newIndex));
+    long newIndex = 0;
+    int orderBySize = this.orderBy.size();
+    while (newIndex < orderBySize && this.orderBy.get(((int) newIndex)).fallsBefore(_orderBy0)) {
+      newIndex++;
+    }
+    Collections.swap(data, index, ((int) newIndex));
+    Collections.swap(this.orderBy, index, ((int) newIndex));
+    this.orderBy.get(((int) newIndex)).update(_orderBy0);
     ListChange change =
         ListChange.forPathChange(
             id, -1, -1, ListChangeType.Changed, ((int) index), ((int) newIndex));

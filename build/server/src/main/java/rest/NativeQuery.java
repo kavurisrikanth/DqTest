@@ -13,6 +13,7 @@ import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
+import lists.OrderedFilteredTransactionsImpl;
 import lists.OrderedTransactionsImpl;
 import models.OneTimePassword;
 import models.User;
@@ -66,6 +67,7 @@ public class NativeQuery extends AbstractQueryService {
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
   @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
+  @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
 
   @PostMapping(path = "/query", produces = MediaType.APPLICATION_JSON_VALUE)
   public String run(@RequestBody String query) throws Exception {

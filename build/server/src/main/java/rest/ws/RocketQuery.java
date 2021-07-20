@@ -10,6 +10,7 @@ import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
+import lists.OrderedFilteredTransactionsImpl;
 import lists.OrderedTransactionsImpl;
 import models.OneTimePassword;
 import models.User;
@@ -34,6 +35,7 @@ public class RocketQuery extends AbstractRocketQuery {
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
   @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
+  @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
 
   protected QueryResult executeOperation(String query, Field field, RocketInputContext ctx)
       throws Exception {

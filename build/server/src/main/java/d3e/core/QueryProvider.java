@@ -7,6 +7,7 @@ import classes.FilteredTransactionsRequest;
 import classes.GroupedTransactions;
 import classes.GroupedTransactionsRequest;
 import classes.LoginResult;
+import classes.OrderedFilteredTransactions;
 import classes.OrderedTransactions;
 import java.util.Optional;
 import javax.annotation.PostConstruct;
@@ -14,6 +15,7 @@ import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
+import lists.OrderedFilteredTransactionsImpl;
 import lists.OrderedTransactionsImpl;
 import models.AnonymousUser;
 import models.Customer;
@@ -53,6 +55,7 @@ public class QueryProvider {
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
   @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
+  @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
   @Autowired private ObjectFactory<AppSessionProvider> provider;
 
   @PostConstruct
@@ -106,6 +109,10 @@ public class QueryProvider {
 
   public OrderedTransactions getOrderedTransactions() {
     return orderedTransactionsImpl.get();
+  }
+
+  public OrderedFilteredTransactions getOrderedFilteredTransactions() {
+    return orderedFilteredTransactionsImpl.get();
   }
 
   public LoginResult loginWithOTP(String token, String code, String deviceToken) {

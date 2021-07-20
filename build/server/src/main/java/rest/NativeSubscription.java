@@ -17,6 +17,7 @@ import lists.AllCustomersSubscriptionHelper;
 import lists.AllTransactionsSubscriptionHelper;
 import lists.DataQueryChange;
 import lists.FilteredTransactionsSubscriptionHelper;
+import lists.OrderedFilteredTransactionsSubscriptionHelper;
 import lists.OrderedTransactionsSubscriptionHelper;
 import org.json.JSONObject;
 import org.springframework.beans.factory.ObjectFactory;
@@ -37,6 +38,9 @@ public class NativeSubscription extends AbstractQueryService {
   @Autowired private ObjectFactory<AllTransactionsSubscriptionHelper> allTransactions;
   @Autowired private ObjectFactory<FilteredTransactionsSubscriptionHelper> filteredTransactions;
   @Autowired private ObjectFactory<OrderedTransactionsSubscriptionHelper> orderedTransactions;
+
+  @Autowired
+  private ObjectFactory<OrderedFilteredTransactionsSubscriptionHelper> orderedFilteredTransactions;
 
   public Flowable<JSONObject> subscribe(JSONObject req) throws Exception {
     List<Field> fields = parseFields(req);
@@ -224,6 +228,13 @@ public class NativeSubscription extends AbstractQueryService {
       case "onOrderedTransactionsChange":
         {
           return orderedTransactions
+              .getObject()
+              .subscribe(inspect(field, "data.items"))
+              .map((e) -> fromDataQueryDataChange(e, field));
+        }
+      case "onOrderedFilteredTransactionsChange":
+        {
+          return orderedFilteredTransactions
               .getObject()
               .subscribe(inspect(field, "data.items"))
               .map((e) -> fromDataQueryDataChange(e, field));

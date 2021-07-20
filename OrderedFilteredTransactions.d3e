@@ -1,0 +1,6 @@
+(DataQuery OrderedFilteredTransactions {
+    query `
+        Transaction.all.where((t) => t.customer.gender == Female).orderBy((t) => t.amount)
+    `
+    enableSync true
+})

@@ -8,19 +8,41 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Cancellable;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
 import models.Customer;
 import models.Transaction;
+import repository.jpa.TransactionRepository;
 import rest.ws.Template;
 import store.StoreEventType;
 
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class StartFilteredTransactionsChangeTracker implements Cancellable {
   private long id;
-  private List<Long> data;
+  private List<StartFilteredTransactionsData> data;
   private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
   private List<Disposable> disposables = ListExt.List();
   private StartFilteredTransactionsRequest inputs;
+  
+  @Autowired private TransactionRepository transactionRepository;
+  
+  private class StartFilteredTransactionsData {
+    long id;
+    long customer;
+    
+    public StartFilteredTransactionsData(long id, long customer) {
+      // TODO Auto-generated constructor stub
+      this.id = id;
+      this.customer = customer;
+    }
+  }
 
   public StartFilteredTransactionsChangeTracker(
       ChangesConsumer changesConsumer,
@@ -38,7 +60,7 @@ public class StartFilteredTransactionsChangeTracker implements Cancellable {
   }
 
   private void storeInitialData(StartFilteredTransactions initialData) {
-    this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
+    this.data = initialData.items.stream().map((x) -> new StartFilteredTransactionsData(x.getId(), x.getCustomer().getId())).collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
     initialData.id = id;
@@ -52,6 +74,28 @@ public class StartFilteredTransactionsChangeTracker implements Cancellable {
     Disposable baseSubscribe =
         tracker.listen(0, null, (obj, type) -> applyTransaction(((Transaction) obj), type));
     disposables.add(baseSubscribe);
+    
+    tracker.listen(1, null, (obj, type) -> {
+      if (type != StoreEventType.Update) {
+        return;
+      }
+      Customer model = (Customer) obj;
+      long id = model.getId();
+      List<StartFilteredTransactionsData> existing = this.data.stream().filter(x -> x.customer == id).collect(Collectors.toList());
+      if (existing.isEmpty()) {
+        // TODO: Caching
+        return;
+      }
+      existing.forEach(x -> checkCustomerWhere(x.id, model));
+    });
+  }
+  
+  private void checkCustomerWhere(long id, Customer model) {
+    boolean valid = model.getAge() >= 55;
+    if (!valid) {
+      Transaction one = transactionRepository.getOne(id);
+      createDeleteChange(one);
+    }
   }
 
   public void applyTransaction(Transaction model, StoreEventType type) {
@@ -99,14 +143,23 @@ public class StartFilteredTransactionsChangeTracker implements Cancellable {
   }
 
   private void createInsertChange(Transaction model) {
-    data.add(model.getId());
+    data.add(new StartFilteredTransactionsData(model.getId(), model.getCustomer().getId()));
     ListChange insert = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(insert);
+  }
+  
+  private List<StartFilteredTransactionsData> find(long id) {
+    // TODO: Maybe remove
+    return this.data.stream().filter(x -> x.id == id).collect(Collectors.toList());
+  }
+  
+  private boolean has(long id) {
+    return this.data.stream().anyMatch(x -> x.id == id);
   }
 
   private void createUpdateChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    if (!has(id)) {
       return;
     }
     ListChange update = new ListChange(this.id, -1, -1, ListChangeType.Changed, model);
@@ -115,10 +168,10 @@ public class StartFilteredTransactionsChangeTracker implements Cancellable {
 
   private void createDeleteChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    if (!has(id)) {
       return;
     }
-    data.remove(id);
+    data.removeIf(x -> x.id == id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
   }

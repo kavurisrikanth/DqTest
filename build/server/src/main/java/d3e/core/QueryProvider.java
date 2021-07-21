@@ -4,6 +4,8 @@ import classes.AllCustomers;
 import classes.AllTransactions;
 import classes.FemaleTransactionsOrderByAmountAndAge;
 import classes.FilteredTransactions;
+import classes.FilteredTransactions2;
+import classes.FilteredTransactions2Request;
 import classes.FilteredTransactionsRequest;
 import classes.GroupedTransactions;
 import classes.GroupedTransactionsRequest;
@@ -15,6 +17,7 @@ import javax.annotation.PostConstruct;
 import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FemaleTransactionsOrderByAmountAndAgeImpl;
+import lists.FilteredTransactions2Impl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
 import lists.OrderedFilteredTransactionsImpl;
@@ -59,6 +62,7 @@ public class QueryProvider {
   private FemaleTransactionsOrderByAmountAndAgeImpl femaleTransactionsOrderByAmountAndAgeImpl;
 
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
+  @Autowired private FilteredTransactions2Impl filteredTransactions2Impl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
   @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
   @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
@@ -111,6 +115,10 @@ public class QueryProvider {
 
   public FilteredTransactions getFilteredTransactions(FilteredTransactionsRequest inputs) {
     return filteredTransactionsImpl.get(inputs);
+  }
+
+  public FilteredTransactions2 getFilteredTransactions2(FilteredTransactions2Request inputs) {
+    return filteredTransactions2Impl.get(inputs);
   }
 
   public GroupedTransactions getGroupedTransactions(GroupedTransactionsRequest inputs) {

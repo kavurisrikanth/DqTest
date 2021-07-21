@@ -1,5 +1,6 @@
 package lists;
 
+import classes.FilteredTransactions2Request;
 import classes.Gender;
 import classes.SubscriptionChangeType;
 import d3e.core.CurrentUser;
@@ -16,8 +17,6 @@ import io.reactivex.rxjava3.core.FlowableOnSubscribe;
 import io.reactivex.rxjava3.disposables.Disposable;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import models.Customer;
 import models.Transaction;
 import models.User;
@@ -30,21 +29,16 @@ import store.StoreEventType;
 
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
+public class FilteredTransactions2SubscriptionHelper
     implements FlowableOnSubscribe<DataQueryDataChange> {
   private class Output {
     Map<Long, Row> rows = MapExt.Map();
-    List<OrderBy> orderByList = ListExt.List();
 
     public Output(List<NativeObj> rows) {
       for (int i = 0; i < rows.size(); i++) {
         NativeObj wrappedBase = rows.get(i);
         Row row = new Row("" + i, wrappedBase, i);
         this.rows.put(wrappedBase.getId(), row);
-        NativeObj base = wrappedBase.getRef(4);
-        double _orderBy0 = wrappedBase.getDouble(1);
-        long _orderBy1 = wrappedBase.getInteger(2);
-        this.orderByList.add(new OrderBy(_orderBy0, _orderBy1, row));
       }
     }
 
@@ -58,11 +52,6 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
           .filter((one) -> one.index >= insertAt)
           .forEach((one) -> one.index++);
       this.rows.put(id, row);
-      NativeObj wrappedBase = row.row;
-      NativeObj base = wrappedBase.getRef(4);
-      double _orderBy0 = wrappedBase.getDouble(1);
-      long _orderBy1 = wrappedBase.getInteger(2);
-      this.orderByList.add(new OrderBy(_orderBy0, _orderBy1, row));
     }
 
     public Row deleteRow(long id) {
@@ -71,42 +60,7 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
       this.rows.values().stream()
           .filter((one) -> one.index > deleteAt)
           .forEach((one) -> one.index--);
-      ListExt.removeWhere(this.orderByList, (o) -> Objects.equals(o.row, row));
       return this.rows.remove(id);
-    }
-
-    public long getPath(double _orderBy0, long _orderBy1) {
-      long index = 0;
-      for (OrderBy orderBy : this.orderByList) {
-        if (!(orderBy.fallsBefore(_orderBy0, _orderBy1))) {
-          break;
-        }
-        index++;
-      }
-      for (OrderBy orderBy : this.orderByList) {
-        if (!(orderBy.fallsBefore(_orderBy0, _orderBy1))) {
-          break;
-        }
-        index++;
-      }
-      for (OrderBy orderBy : this.orderByList) {
-        if (!(orderBy.fallsBefore(_orderBy0, _orderBy1))) {
-          break;
-        }
-        index++;
-      }
-      return index;
-    }
-
-    public void moveRow(Row row, int newIndex) {
-      int oldIndex = row.index;
-      this.rows.values().stream()
-          .filter((one) -> one.index > oldIndex)
-          .forEach((one) -> one.index--);
-      this.rows.values().stream()
-          .filter((one) -> one.index >= newIndex)
-          .forEach((one) -> one.index++);
-      row.index = newIndex;
     }
   }
 
@@ -122,57 +76,22 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
     }
   }
 
-  private class OrderBy {
-    double _orderBy0;
-    long _orderBy1;
-    Row row;
-
-    public OrderBy(double _orderBy0, long _orderBy1, Row row) {
-      this._orderBy0 = _orderBy0;
-      this._orderBy1 = _orderBy1;
-      this.row = row;
-    }
-
-    public boolean fallsBefore(double _orderBy0, long _orderBy1) {
-      if (this._orderBy0 < _orderBy0) {
-        return true;
-      }
-      if (this._orderBy0 > _orderBy0) {
-        return false;
-      }
-      if (this._orderBy1 > _orderBy1) {
-        return true;
-      }
-      if (this._orderBy1 < _orderBy1) {
-        return false;
-      }
-      return true;
-    }
-
-    public void update(double _orderBy0, long _orderBy1) {
-      this._orderBy0 = _orderBy0;
-      this._orderBy1 = _orderBy1;
-    }
-  }
-
   @Autowired private TransactionWrapper transactional;
-
-  @Autowired
-  private FemaleTransactionsOrderByAmountAndAgeImpl femaleTransactionsOrderByAmountAndAgeImpl;
-
+  @Autowired private FilteredTransactions2Impl filteredTransactions2Impl;
   @Autowired private D3ESubscription subscription;
   private Flowable<DataQueryDataChange> flowable;
   private FlowableEmitter<DataQueryDataChange> emitter;
   private List<Disposable> disposables = ListExt.List();
   private Output output;
   private Field field;
+  private FilteredTransactions2Request inputs;
   private Map<Long, List<Row>> a__customer_id_Rows = MapExt.Map();
 
   @Async
   public void handleContextStart(DataQueryDataChange event) {
     updateData(event);
     try {
-      event.data = femaleTransactionsOrderByAmountAndAgeImpl.getAsJson(field, event.nativeData);
+      event.data = filteredTransactions2Impl.getAsJson(field, event.nativeData);
       event.nativeData = null;
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -189,7 +108,7 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
   private void loadInitialData() {
     DataQueryDataChange change = new DataQueryDataChange();
     change.changeType = SubscriptionChangeType.All;
-    change.nativeData = femaleTransactionsOrderByAmountAndAgeImpl.getNativeResult();
+    change.nativeData = filteredTransactions2Impl.getNativeResult(this.inputs);
     handleContextStart(change);
   }
 
@@ -199,11 +118,12 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
     emitter.setCancellable(() -> disposables.forEach((d) -> d.dispose()));
   }
 
-  public Flowable<DataQueryDataChange> subscribe(Field field) {
+  public Flowable<DataQueryDataChange> subscribe(Field field, FilteredTransactions2Request inputs) {
     {
       User currentUser = CurrentUser.get();
     }
     this.field = field;
+    this.inputs = inputs;
     this.flowable = Flowable.create(this, BackpressureStrategy.BUFFER);
     return this.flowable;
   }
@@ -237,7 +157,6 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
                     row0.forEach(
                         (r) -> {
                           applyWhereCustomer(r, value);
-                          applyOrderCustomer(r, value);
                         });
                   }
                 });
@@ -275,9 +194,7 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
         if (!(currentMatch) && !(oldMatch)) {
           return;
         }
-        if (!(createPathChangeChange(changes, model, old))) {
-          createUpdateChange(changes, model);
-        }
+        createUpdateChange(changes, model);
       } else {
         if (oldMatch) {
           createDeleteChange(changes, model);
@@ -291,15 +208,14 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
   }
 
   private boolean applyWhere(Transaction model) {
-    return model.getCustomer().getGender() == Gender.Female;
+    return model.getAmount() >= inputs.amount && model.getCustomer().getGender() == Gender.Female;
   }
 
   private void createInsertChange(List<DataQueryDataChange> changes, Transaction model) {
     DataQueryDataChange change = new DataQueryDataChange();
     change.nativeData = createTransactionData(model);
     change.changeType = SubscriptionChangeType.Insert;
-    long index = this.output.getPath(model.getAmount(), model.getCustomer().getAge());
-    change.path = index == output.rows.size() ? "-1" : Long.toString(index);
+    change.path = "-1";
     change.index = output.rows.size();
     changes.add(change);
   }
@@ -334,47 +250,14 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
     changes.add(change);
   }
 
-  private boolean createPathChangeChange(
-      List<DataQueryDataChange> changes, Transaction model, Transaction old) {
-    boolean changed =
-        old.getAmount() != model.getAmount()
-            || old.getCustomer().getAge() != model.getCustomer().getAge();
-    if (!(changed)) {
-      return false;
-    }
-    Row row = output.get(model.getId());
-    if (row == null) {
-      return false;
-    }
-    double _orderBy0 = model.getAmount();
-    long _orderBy1 = model.getCustomer().getAge();
-    long index = this.output.getPath(_orderBy0, _orderBy1);
-    createPathChangeChange(changes, row, index);
-    this.output.orderByList.stream()
-        .filter((one) -> one.row.equals(row))
-        .forEach((one) -> one.update(_orderBy0, _orderBy1));
-    return true;
-  }
-
-  private void createPathChangeChange(List<DataQueryDataChange> changes, Row row, long index) {
-    DataQueryDataChange change = new DataQueryDataChange();
-    change.changeType = SubscriptionChangeType.PathChange;
-    change.oldPath = row.path;
-    change.index = ((int) index);
-    change.path = Long.toString(index);
-    change.nativeData = ListExt.asList(row.row);
-    changes.add(change);
-  }
-
   private List<NativeObj> createTransactionData(Transaction transaction) {
     List<NativeObj> data = ListExt.List();
-    NativeObj row = new NativeObj(5);
-    row.set(0, transaction.getCustomer().getGender());
-    row.set(3, transaction.getCustomer().getId());
-    row.set(1, transaction.getAmount());
-    row.set(2, transaction.getCustomer().getAge());
-    row.set(4, transaction.getId());
-    row.setId(4);
+    NativeObj row = new NativeObj(4);
+    row.set(0, transaction.getAmount());
+    row.set(1, transaction.getCustomer().getGender());
+    row.set(2, transaction.getCustomer().getId());
+    row.set(3, transaction.getId());
+    row.setId(3);
     data.add(row);
     return data;
   }
@@ -417,10 +300,8 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
                   (r) -> {
                     NativeObj wrappedBase = r.row;
                     if (wrappedBase != null) {
-                      NativeObj ref0 = wrappedBase.getRef(3);
+                      NativeObj ref0 = wrappedBase.getRef(2);
                       updateData(ref0, a__customer_id_Rows, r, false);
-                      NativeObj ref1 = wrappedBase.getRef(3);
-                      updateData(ref1, a__customer_id_Rows, r, false);
                     }
                   });
           break;
@@ -431,10 +312,8 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
           Row delRow = output.deleteRow(del.getId());
           NativeObj wrappedBase = delRow.row;
           if (wrappedBase != null) {
-            NativeObj ref0 = wrappedBase.getRef(3);
+            NativeObj ref0 = wrappedBase.getRef(2);
             updateData(ref0, a__customer_id_Rows, delRow, true);
-            NativeObj ref1 = wrappedBase.getRef(3);
-            updateData(ref1, a__customer_id_Rows, delRow, true);
           }
           break;
         }
@@ -446,31 +325,13 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
           output.insertRow(add.getId(), newRow);
           NativeObj wrappedBase = newRow.row;
           if (wrappedBase != null) {
-            NativeObj ref0 = wrappedBase.getRef(3);
+            NativeObj ref0 = wrappedBase.getRef(2);
             updateData(ref0, a__customer_id_Rows, newRow, false);
-            NativeObj ref1 = wrappedBase.getRef(3);
-            updateData(ref1, a__customer_id_Rows, newRow, false);
           }
           break;
         }
       case Update:
         {
-          break;
-        }
-      case PathChange:
-        {
-          String oldPath = change.oldPath;
-          String newPath = change.path;
-          if (oldPath == null || newPath == null) {
-            return;
-          }
-          NativeObj obj = change.nativeData.get(0);
-          Row row = output.rows.get(obj.getId());
-          if (!(Objects.equals(row.path, oldPath))) {
-            return;
-          }
-          row.path = newPath;
-          this.output.moveRow(row, change.index);
           break;
         }
       default:
@@ -482,32 +343,11 @@ public class FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper
 
   private void applyWhereCustomer(Row r, Customer customer) {
     NativeObj wrappedBase = r.row;
-    NativeObj base = wrappedBase.getRef(4);
-    boolean matched = customer.getGender() == Gender.Female;
+    NativeObj base = wrappedBase.getRef(3);
+    boolean matched = base.getDouble(0) >= inputs.amount && customer.getGender() == Gender.Female;
     if (!(matched)) {
       List<DataQueryDataChange> changes = ListExt.List();
       createDeleteChange(changes, r);
-      pushChanges(changes);
-    }
-  }
-
-  private void applyOrderCustomer(Row r, Customer customer) {
-    NativeObj wrappedBase = r.row;
-    NativeObj base = wrappedBase.getRef(4);
-    List<OrderBy> orderBys =
-        this.output.orderByList.stream()
-            .filter((one) -> one.row.equals(r))
-            .collect(Collectors.toList());
-    boolean changed = Objects.equals(customer.getAge(), customer.getOld().getAge());
-    if (changed) {
-      long _orderBy1 = customer.getAge();
-      List<DataQueryDataChange> changes = ListExt.List();
-      orderBys.forEach(
-          (one) -> {
-            long index = this.output.getPath(_orderBy1);
-            one._orderBy1 = _orderBy1;
-            createPathChangeChange(changes, r, index);
-          });
       pushChanges(changes);
     }
   }

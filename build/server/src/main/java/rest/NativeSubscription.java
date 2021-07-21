@@ -1,5 +1,6 @@
 package rest;
 
+import classes.FilteredTransactions2Request;
 import classes.FilteredTransactionsRequest;
 import d3e.core.D3ELogger;
 import d3e.core.D3ESubscription;
@@ -17,6 +18,7 @@ import lists.AllCustomersSubscriptionHelper;
 import lists.AllTransactionsSubscriptionHelper;
 import lists.DataQueryChange;
 import lists.FemaleTransactionsOrderByAmountAndAgeSubscriptionHelper;
+import lists.FilteredTransactions2SubscriptionHelper;
 import lists.FilteredTransactionsSubscriptionHelper;
 import lists.OrderedFilteredTransactionsSubscriptionHelper;
 import lists.OrderedTransactionsSubscriptionHelper;
@@ -43,6 +45,7 @@ public class NativeSubscription extends AbstractQueryService {
       femaleTransactionsOrderByAmountAndAge;
 
   @Autowired private ObjectFactory<FilteredTransactionsSubscriptionHelper> filteredTransactions;
+  @Autowired private ObjectFactory<FilteredTransactions2SubscriptionHelper> filteredTransactions2;
 
   @Autowired
   private ObjectFactory<OrderedFilteredTransactionsSubscriptionHelper> orderedFilteredTransactions;
@@ -235,6 +238,14 @@ public class NativeSubscription extends AbstractQueryService {
         {
           FilteredTransactionsRequest req = ctx.readInto("in", new FilteredTransactionsRequest());
           return filteredTransactions
+              .getObject()
+              .subscribe(inspect(field, "data.items"), req)
+              .map((e) -> fromDataQueryDataChange(e, field));
+        }
+      case "onFilteredTransactions2Change":
+        {
+          FilteredTransactions2Request req = ctx.readInto("in", new FilteredTransactions2Request());
+          return filteredTransactions2
               .getObject()
               .subscribe(inspect(field, "data.items"), req)
               .map((e) -> fromDataQueryDataChange(e, field));

@@ -1,0 +1,13 @@
+(DataQuery FilteredTransactions2 {
+    inputs [
+        (amount {
+            type ({
+                primitive Double
+            })
+        })
+    ]
+    query `
+        Transaction.all.where((t) => t.amount >= inputs.amount && t.customer.gender == Female)
+    `
+    enableSync true
+})

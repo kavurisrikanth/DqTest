@@ -12,6 +12,7 @@ import java.util.UUID;
 import lists.AllCustomersImpl;
 import lists.AllTransactionsImpl;
 import lists.FemaleTransactionsOrderByAmountAndAgeImpl;
+import lists.FilteredTransactions2Impl;
 import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
 import lists.OrderedFilteredTransactionsImpl;
@@ -70,6 +71,7 @@ public class NativeQuery extends AbstractQueryService {
   private FemaleTransactionsOrderByAmountAndAgeImpl femaleTransactionsOrderByAmountAndAgeImpl;
 
   @Autowired private FilteredTransactionsImpl filteredTransactionsImpl;
+  @Autowired private FilteredTransactions2Impl filteredTransactions2Impl;
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
   @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
   @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;

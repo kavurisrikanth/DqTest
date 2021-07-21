@@ -7,7 +7,7 @@
         })
     ]
     query `
-        Transaction.all.where((t) => t.amount >= inputs.amount && t.customer.gender == Female)
+        Transaction.all.where((t) => t.amount >= inputs.amount && t.customer.age >= 55)
     `
     enableSync true
 })

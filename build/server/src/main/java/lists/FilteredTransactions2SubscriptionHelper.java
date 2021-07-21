@@ -1,7 +1,6 @@
 package lists;
 
 import classes.FilteredTransactions2Request;
-import classes.Gender;
 import classes.SubscriptionChangeType;
 import d3e.core.CurrentUser;
 import d3e.core.D3ESubscription;
@@ -208,7 +207,7 @@ public class FilteredTransactions2SubscriptionHelper
   }
 
   private boolean applyWhere(Transaction model) {
-    return model.getAmount() >= inputs.amount && model.getCustomer().getGender() == Gender.Female;
+    return model.getAmount() >= inputs.amount && model.getCustomer().getAge() >= 55l;
   }
 
   private void createInsertChange(List<DataQueryDataChange> changes, Transaction model) {
@@ -254,7 +253,7 @@ public class FilteredTransactions2SubscriptionHelper
     List<NativeObj> data = ListExt.List();
     NativeObj row = new NativeObj(4);
     row.set(0, transaction.getAmount());
-    row.set(1, transaction.getCustomer().getGender());
+    row.set(1, transaction.getCustomer().getAge());
     row.set(2, transaction.getCustomer().getId());
     row.set(3, transaction.getId());
     row.setId(3);
@@ -344,7 +343,7 @@ public class FilteredTransactions2SubscriptionHelper
   private void applyWhereCustomer(Row r, Customer customer) {
     NativeObj wrappedBase = r.row;
     NativeObj base = wrappedBase.getRef(3);
-    boolean matched = base.getDouble(0) >= inputs.amount && customer.getGender() == Gender.Female;
+    boolean matched = base.getDouble(0) >= inputs.amount && customer.getAge() >= 55l;
     if (!(matched)) {
       List<DataQueryDataChange> changes = ListExt.List();
       createDeleteChange(changes, r);

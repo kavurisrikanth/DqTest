@@ -2,6 +2,7 @@ package rest;
 
 import classes.FilteredTransactions2Request;
 import classes.FilteredTransactionsRequest;
+import classes.StartFilteredTransactionsRequest;
 import d3e.core.D3ELogger;
 import d3e.core.D3ESubscription;
 import d3e.core.D3ESubscriptionEvent;
@@ -22,6 +23,7 @@ import lists.FilteredTransactions2SubscriptionHelper;
 import lists.FilteredTransactionsSubscriptionHelper;
 import lists.OrderedFilteredTransactionsSubscriptionHelper;
 import lists.OrderedTransactionsSubscriptionHelper;
+import lists.StartFilteredTransactionsSubscriptionHelper;
 import org.json.JSONObject;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +53,9 @@ public class NativeSubscription extends AbstractQueryService {
   private ObjectFactory<OrderedFilteredTransactionsSubscriptionHelper> orderedFilteredTransactions;
 
   @Autowired private ObjectFactory<OrderedTransactionsSubscriptionHelper> orderedTransactions;
+
+  @Autowired
+  private ObjectFactory<StartFilteredTransactionsSubscriptionHelper> startFilteredTransactions;
 
   public Flowable<JSONObject> subscribe(JSONObject req) throws Exception {
     List<Field> fields = parseFields(req);
@@ -262,6 +267,15 @@ public class NativeSubscription extends AbstractQueryService {
           return orderedTransactions
               .getObject()
               .subscribe(inspect(field, "data.items"))
+              .map((e) -> fromDataQueryDataChange(e, field));
+        }
+      case "onStartFilteredTransactionsChange":
+        {
+          StartFilteredTransactionsRequest req =
+              ctx.readInto("in", new StartFilteredTransactionsRequest());
+          return startFilteredTransactions
+              .getObject()
+              .subscribe(inspect(field, "data.items"), req)
               .map((e) -> fromDataQueryDataChange(e, field));
         }
     }

@@ -1,0 +1,13 @@
+(DataQuery StartFilteredTransactions {
+    inputs [
+        (amount {
+            type ({
+                primitive Double
+            })
+        })
+    ]
+    query `
+        Transaction.all.where((t) => t.amount >= inputs.amount && t.customer.age >= 55)
+    `
+    enableSync true
+})

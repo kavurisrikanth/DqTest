@@ -17,6 +17,7 @@ import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
 import lists.OrderedFilteredTransactionsImpl;
 import lists.OrderedTransactionsImpl;
+import lists.StartFilteredTransactionsImpl;
 import models.OneTimePassword;
 import models.User;
 import org.apache.commons.io.IOUtils;
@@ -75,6 +76,7 @@ public class NativeQuery extends AbstractQueryService {
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
   @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
   @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
+  @Autowired private StartFilteredTransactionsImpl startFilteredTransactionsImpl;
 
   @PostMapping(path = "/query", produces = MediaType.APPLICATION_JSON_VALUE)
   public String run(@RequestBody String query) throws Exception {

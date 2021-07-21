@@ -14,6 +14,7 @@ import lists.FilteredTransactionsImpl;
 import lists.GroupedTransactionsImpl;
 import lists.OrderedFilteredTransactionsImpl;
 import lists.OrderedTransactionsImpl;
+import lists.StartFilteredTransactionsImpl;
 import models.OneTimePassword;
 import models.User;
 import org.springframework.beans.factory.ObjectFactory;
@@ -43,6 +44,7 @@ public class RocketQuery extends AbstractRocketQuery {
   @Autowired private GroupedTransactionsImpl groupedTransactionsImpl;
   @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
   @Autowired private OrderedTransactionsImpl orderedTransactionsImpl;
+  @Autowired private StartFilteredTransactionsImpl startFilteredTransactionsImpl;
 
   protected QueryResult executeOperation(String query, Field field, RocketInputContext ctx)
       throws Exception {

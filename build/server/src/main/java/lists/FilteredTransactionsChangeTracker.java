@@ -3,15 +3,22 @@ package lists;
 import classes.FilteredTransactions;
 import classes.FilteredTransactionsRequest;
 import classes.IdGenerator;
+import d3e.core.CurrentUser;
 import d3e.core.ListExt;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Cancellable;
 import java.util.List;
 import java.util.stream.Collectors;
 import models.Transaction;
+import models.User;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 import rest.ws.Template;
 import store.StoreEventType;
 
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FilteredTransactionsChangeTracker implements Cancellable {
   private long id;
   private List<Long> data;
@@ -21,12 +28,17 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
   private List<Disposable> disposables = ListExt.List();
   private FilteredTransactionsRequest inputs;
 
-  public FilteredTransactionsChangeTracker(
+  public void init(
       ChangesConsumer changesConsumer,
       DataChangeTracker tracker,
-      FilteredTransactions initialData) {
+      FilteredTransactions initialData,
+      FilteredTransactionsRequest inputs) {
+    {
+      User currentUser = CurrentUser.get();
+    }
     this.changesConsumer = changesConsumer;
     this.tracker = tracker;
+    this.inputs = inputs;
     storeInitialData(initialData);
     addSubscriptions();
   }
@@ -53,6 +65,17 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
     disposables.add(baseSubscribe);
   }
 
+  private Long find(long id) {
+    /*
+    TODO: Maybe remove
+    */
+    return this.data.stream().filter((x) -> x == id).findFirst().orElse(null);
+  }
+
+  private boolean has(long id) {
+    return this.data.stream().anyMatch((x) -> x == id);
+  }
+
   public void applyTransaction(Transaction model, StoreEventType type) {
     if (type == StoreEventType.Insert) {
       /*
@@ -76,7 +99,7 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
         return;
       }
       boolean currentMatch = applyWhere(model);
-      boolean oldMatch = this.data.contains(old.getId());
+      boolean oldMatch = has(old.getId());
       if (currentMatch == oldMatch) {
         if (!(currentMatch) && !(oldMatch)) {
           return;
@@ -105,7 +128,7 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
 
   private void createUpdateChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    if (!(has(id))) {
       return;
     }
     ListChange update = new ListChange(this.id, -1, -1, ListChangeType.Changed, model);
@@ -114,7 +137,7 @@ public class FilteredTransactionsChangeTracker implements Cancellable {
 
   private void createDeleteChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    if (!(has(id))) {
       return;
     }
     data.remove(id);

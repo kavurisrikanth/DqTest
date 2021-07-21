@@ -3,6 +3,7 @@ package lists;
 import classes.Gender;
 import classes.IdGenerator;
 import classes.OrderedFilteredTransactions;
+import d3e.core.CurrentUser;
 import d3e.core.ListExt;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Cancellable;
@@ -11,9 +12,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 import models.Customer;
 import models.Transaction;
+import models.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+import repository.jpa.TransactionRepository;
 import rest.ws.Template;
 import store.StoreEventType;
 
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
   private class OrderBy {
     double _orderBy0;
@@ -39,18 +48,33 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
     }
   }
 
+  private class OrderedFilteredTransactionsData {
+    long id;
+    long a__customer_id_Rows;
+
+    public OrderedFilteredTransactionsData(long id, long a__customer_id_Rows) {
+      this.id = id;
+      this.a__customer_id_Rows = a__customer_id_Rows;
+    }
+  }
+
   private long id;
-  private List<Long> data;
+  private List<OrderedFilteredTransactionsData> data;
   private List<OrderBy> orderBy = ListExt.List();
   private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
   private List<Disposable> disposables = ListExt.List();
+  @Autowired private OrderedFilteredTransactionsImpl orderedFilteredTransactionsImpl;
+  @Autowired private TransactionRepository transactionRepository;
 
-  public OrderedFilteredTransactionsChangeTracker(
+  public void init(
       ChangesConsumer changesConsumer,
       DataChangeTracker tracker,
       OrderedFilteredTransactions initialData) {
+    {
+      User currentUser = CurrentUser.get();
+    }
     this.changesConsumer = changesConsumer;
     this.tracker = tracker;
     storeInitialData(initialData);
@@ -63,7 +87,10 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
   }
 
   private void storeInitialData(OrderedFilteredTransactions initialData) {
-    this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
+    this.data =
+        initialData.items.stream()
+            .map((x) -> new OrderedFilteredTransactionsData(x.getId(), x.getCustomer().getId()))
+            .collect(Collectors.toList());
     this.orderBy =
         initialData.items.stream()
             .map((x) -> new OrderBy(x.getAmount(), x.getId()))
@@ -81,6 +108,48 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
     Disposable baseSubscribe =
         tracker.listen(0, null, (obj, type) -> applyTransaction(((Transaction) obj), type));
     disposables.add(baseSubscribe);
+    Disposable customerSubscribe =
+        tracker.listen(
+            0,
+            null,
+            (obj, type) -> {
+              if (type != StoreEventType.Update) {
+                return;
+              }
+              Customer model = ((Customer) obj);
+              long id = model.getId();
+              List<OrderedFilteredTransactionsData> existing =
+                  this.data.stream()
+                      .filter(
+                          (x) -> {
+                            /*
+                            TODO
+                            */
+                            return x.a__customer_id_Rows == id;
+                          })
+                      .collect(Collectors.toList());
+              if (existing.isEmpty()) {
+                /*
+                TODO: Caching
+                */
+              }
+              existing.forEach(
+                  (x) -> {
+                    applyWhereCustomer(x.id, model);
+                  });
+            });
+    disposables.add(customerSubscribe);
+  }
+
+  private OrderedFilteredTransactionsData find(long id) {
+    /*
+    TODO: Maybe remove
+    */
+    return this.data.stream().filter((x) -> x.id == id).findFirst().orElse(null);
+  }
+
+  private boolean has(long id) {
+    return this.data.stream().anyMatch((x) -> x.id == id);
   }
 
   public void applyTransaction(Transaction model, StoreEventType type) {
@@ -106,7 +175,7 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
         return;
       }
       boolean currentMatch = applyWhere(model);
-      boolean oldMatch = this.data.contains(old.getId());
+      boolean oldMatch = has(old.getId());
       if (currentMatch == oldMatch) {
         if (!(currentMatch) && !(oldMatch)) {
           return;
@@ -137,7 +206,9 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
     while (index < orderBySize && this.orderBy.get(((int) index)).fallsBefore(_orderBy0)) {
       index++;
     }
-    data.add(((int) index), id);
+    data.add(
+        ((int) index),
+        new OrderedFilteredTransactionsData(model.getId(), model.getCustomer().getId()));
     this.orderBy.add(((int) index), new OrderBy(_orderBy0, id));
     ListChange insert = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(insert);
@@ -145,7 +216,7 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
 
   private void createUpdateChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    if (!(has(id))) {
       return;
     }
     ListChange update = new ListChange(this.id, -1, -1, ListChangeType.Changed, model);
@@ -154,10 +225,11 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
 
   private void createDeleteChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    OrderedFilteredTransactionsData existing = find(id);
+    if (existing == null) {
       return;
     }
-    data.remove(id);
+    data.remove(existing);
     ListExt.removeWhere(this.orderBy, (x) -> x.id == id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
@@ -187,5 +259,17 @@ public class OrderedFilteredTransactionsChangeTracker implements Cancellable {
             id, -1, -1, ListChangeType.Changed, ((int) index), ((int) newIndex));
     this.changesConsumer.writeListChange(change);
     return true;
+  }
+
+  private void applyWhereCustomer(long id, Customer customer) {
+    /*
+    TODO: Extract only relevant part of expression
+    */
+    boolean matched = customer.getGender() == Gender.Female;
+    if (!(matched)) {
+      /*
+      TODO: Get from repository and create delete change
+      */
+    }
   }
 }

@@ -3,6 +3,7 @@ package lists;
 import classes.FemaleTransactionsOrderByAmountAndAge;
 import classes.Gender;
 import classes.IdGenerator;
+import d3e.core.CurrentUser;
 import d3e.core.ListExt;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Cancellable;
@@ -11,9 +12,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 import models.Customer;
 import models.Transaction;
+import models.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+import repository.jpa.TransactionRepository;
 import rest.ws.Template;
 import store.StoreEventType;
 
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cancellable {
   private class OrderBy {
     double _orderBy0;
@@ -48,18 +57,36 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
     }
   }
 
+  private class FemaleTransactionsOrderByAmountAndAgeData {
+    long id;
+    long a__customer_id_Rows;
+
+    public FemaleTransactionsOrderByAmountAndAgeData(long id, long a__customer_id_Rows) {
+      this.id = id;
+      this.a__customer_id_Rows = a__customer_id_Rows;
+    }
+  }
+
   private long id;
-  private List<Long> data;
+  private List<FemaleTransactionsOrderByAmountAndAgeData> data;
   private List<OrderBy> orderBy = ListExt.List();
   private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
   private List<Disposable> disposables = ListExt.List();
 
-  public FemaleTransactionsOrderByAmountAndAgeChangeTracker(
+  @Autowired
+  private FemaleTransactionsOrderByAmountAndAgeImpl femaleTransactionsOrderByAmountAndAgeImpl;
+
+  @Autowired private TransactionRepository transactionRepository;
+
+  public void init(
       ChangesConsumer changesConsumer,
       DataChangeTracker tracker,
       FemaleTransactionsOrderByAmountAndAge initialData) {
+    {
+      User currentUser = CurrentUser.get();
+    }
     this.changesConsumer = changesConsumer;
     this.tracker = tracker;
     storeInitialData(initialData);
@@ -72,7 +99,13 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
   }
 
   private void storeInitialData(FemaleTransactionsOrderByAmountAndAge initialData) {
-    this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
+    this.data =
+        initialData.items.stream()
+            .map(
+                (x) ->
+                    new FemaleTransactionsOrderByAmountAndAgeData(
+                        x.getId(), x.getCustomer().getId()))
+            .collect(Collectors.toList());
     this.orderBy =
         initialData.items.stream()
             .map((x) -> new OrderBy(x.getAmount(), x.getCustomer().getAge(), x.getId()))
@@ -90,6 +123,49 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
     Disposable baseSubscribe =
         tracker.listen(0, null, (obj, type) -> applyTransaction(((Transaction) obj), type));
     disposables.add(baseSubscribe);
+    Disposable customerSubscribe =
+        tracker.listen(
+            0,
+            null,
+            (obj, type) -> {
+              if (type != StoreEventType.Update) {
+                return;
+              }
+              Customer model = ((Customer) obj);
+              long id = model.getId();
+              List<FemaleTransactionsOrderByAmountAndAgeData> existing =
+                  this.data.stream()
+                      .filter(
+                          (x) -> {
+                            /*
+                            TODO
+                            */
+                            return x.a__customer_id_Rows == id;
+                          })
+                      .collect(Collectors.toList());
+              if (existing.isEmpty()) {
+                /*
+                TODO: Caching
+                */
+              }
+              existing.forEach(
+                  (x) -> {
+                    applyWhereCustomer(x.id, model);
+                    applyOrderCustomer(x.id, model);
+                  });
+            });
+    disposables.add(customerSubscribe);
+  }
+
+  private FemaleTransactionsOrderByAmountAndAgeData find(long id) {
+    /*
+    TODO: Maybe remove
+    */
+    return this.data.stream().filter((x) -> x.id == id).findFirst().orElse(null);
+  }
+
+  private boolean has(long id) {
+    return this.data.stream().anyMatch((x) -> x.id == id);
   }
 
   public void applyTransaction(Transaction model, StoreEventType type) {
@@ -115,7 +191,7 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
         return;
       }
       boolean currentMatch = applyWhere(model);
-      boolean oldMatch = this.data.contains(old.getId());
+      boolean oldMatch = has(old.getId());
       if (currentMatch == oldMatch) {
         if (!(currentMatch) && !(oldMatch)) {
           return;
@@ -148,7 +224,9 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
         && this.orderBy.get(((int) index)).fallsBefore(_orderBy0, _orderBy1)) {
       index++;
     }
-    data.add(((int) index), id);
+    data.add(
+        ((int) index),
+        new FemaleTransactionsOrderByAmountAndAgeData(model.getId(), model.getCustomer().getId()));
     this.orderBy.add(((int) index), new OrderBy(_orderBy0, _orderBy1, id));
     ListChange insert = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(insert);
@@ -156,7 +234,7 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
 
   private void createUpdateChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    if (!(has(id))) {
       return;
     }
     ListChange update = new ListChange(this.id, -1, -1, ListChangeType.Changed, model);
@@ -165,10 +243,11 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
 
   private void createDeleteChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    FemaleTransactionsOrderByAmountAndAgeData existing = find(id);
+    if (existing == null) {
       return;
     }
-    data.remove(id);
+    data.remove(existing);
     ListExt.removeWhere(this.orderBy, (x) -> x.id == id);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
@@ -203,4 +282,18 @@ public class FemaleTransactionsOrderByAmountAndAgeChangeTracker implements Cance
     this.changesConsumer.writeListChange(change);
     return true;
   }
+
+  private void applyWhereCustomer(long id, Customer customer) {
+    /*
+    TODO: Extract only relevant part of expression
+    */
+    boolean matched = customer.getGender() == Gender.Female;
+    if (!(matched)) {
+      /*
+      TODO: Get from repository and create delete change
+      */
+    }
+  }
+
+  private void applyOrderCustomer(long id, Customer customer) {}
 }

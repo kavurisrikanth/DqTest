@@ -1,23 +1,21 @@
 package lists;
 
+import classes.FilteredTransactions2;
+import classes.FilteredTransactions2Request;
+import classes.IdGenerator;
+import d3e.core.CurrentUser;
+import d3e.core.ListExt;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Cancellable;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-
+import models.Customer;
+import models.Transaction;
+import models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-
-import classes.FilteredTransactions2;
-import classes.FilteredTransactions2Request;
-import classes.IdGenerator;
-import d3e.core.ListExt;
-import d3e.core.MapExt;
-import io.reactivex.rxjava3.disposables.Disposable;
-import io.reactivex.rxjava3.functions.Cancellable;
-import models.Customer;
-import models.Transaction;
 import repository.jpa.TransactionRepository;
 import rest.ws.Template;
 import store.StoreEventType;
@@ -25,10 +23,18 @@ import store.StoreEventType;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FilteredTransactions2ChangeTracker implements Cancellable {
+  private class FilteredTransactions2Data {
+    long id;
+    long a__customer_id_Rows;
+
+    public FilteredTransactions2Data(long id, long a__customer_id_Rows) {
+      this.id = id;
+      this.a__customer_id_Rows = a__customer_id_Rows;
+    }
+  }
   private long id;
-  private List<Long> data;
-  private Map<Long, List<Long>> refInfo = MapExt.Map();
   
+  private List<FilteredTransactions2Data> data;
   private DataChangeTracker tracker;
   private ChangesConsumer changesConsumer;
   private Template template;
@@ -61,9 +67,14 @@ public class FilteredTransactions2ChangeTracker implements Cancellable {
   public void init(
       ChangesConsumer changesConsumer,
       DataChangeTracker tracker,
-      FilteredTransactions2 initialData) {
+      FilteredTransactions2 initialData,
+      FilteredTransactions2Request inputs) {
+    {
+      User currentUser = CurrentUser.get();
+    }
     this.changesConsumer = changesConsumer;
     this.tracker = tracker;
+    this.inputs = inputs;
     storeInitialData(initialData);
     addSubscriptions();
   }
@@ -74,13 +85,10 @@ public class FilteredTransactions2ChangeTracker implements Cancellable {
   }
 
   private void storeInitialData(FilteredTransactions2 initialData) {
-    this.data = initialData.items.stream().map((x) -> x.getId()).collect(Collectors.toList());
-    initialData.items.forEach(one -> {
-      long id = one.getId();
-      long customer_id = one.getCustomer().getId();
-      this.refInfo.putIfAbsent(customer_id, ListExt.List());
-      this.refInfo.get(customer_id).add(id);
-    });
+    this.data =
+        initialData.items.stream()
+            .map((x) -> new FilteredTransactions2Data(x.getId(), x.getCustomer().getId()))
+            .collect(Collectors.toList());
     long id = IdGenerator.getNext();
     this.id = id;
     initialData.id = id;
@@ -97,41 +105,48 @@ public class FilteredTransactions2ChangeTracker implements Cancellable {
         tracker.listen(0, null, (obj, type) -> applyTransaction(((Transaction) obj), type));
     disposables.add(baseSubscribe);
     
-    // Customer listener
-    tracker.listen(1, null, (obj, type) -> {
-      if (type != StoreEventType.Update) {
-        return;
-      }
-      Customer c = (Customer) obj;
-      long id = c.getId();
-      List<Long> found = this.refInfo.get(id);
-      if (found.isEmpty()) {
-        // Look in cache
-        List<DQ1Cache> inCache = this.dq1Cache.stream().filter(x -> x.customer == id).collect(Collectors.toList());
-        if (inCache.isEmpty()) {
-          // Nothing to do - Maybe stale cache?
-          return;
-        }
-        // Update refInfo (and then run this again?)
-        List<Long> fromCache = inCache.stream().map(x -> x.transaction).collect(Collectors.toList());
-        this.refInfo.put(id, fromCache);
-        found = fromCache;
-      }
-      found.forEach(i -> checkCustomerWhere(i, c));
-    });
+    Disposable customerSubscribe =
+        tracker.listen(
+            0,
+            null,
+            (obj, type) -> {
+              if (type != StoreEventType.Update) {
+                return;
+              }
+              Customer model = ((Customer) obj);
+              long id = model.getId();
+              List<FilteredTransactions2Data> existing =
+                  this.data.stream()
+                      .filter(
+                          (x) -> {
+                            /*
+                            TODO
+                            */
+                            return x.a__customer_id_Rows == id;
+                          })
+                      .collect(Collectors.toList());
+              if (existing.isEmpty()) {
+                /*
+                TODO: Caching
+                */
+              }
+              existing.forEach(
+                  (x) -> {
+                    applyWhereCustomer(x.id, model);
+                  });
+            });
+    disposables.add(customerSubscribe);
   }
 
-  private void checkCustomerWhere(long id, Customer c) {
-    // TODO Auto-generated method stub
-    
-    // id is Transaction id
-    
-    // TODO: Extract only this part of the condition
-    boolean valid = c.getAge() >= 55;
-    if (!valid) {
-      Transaction txn = transactionRepository.getOne(id);
-      createDeleteChange(txn);
-    }
+  private FilteredTransactions2Data find(long id) {
+    /*
+    TODO: Maybe remove
+    */
+    return this.data.stream().filter((x) -> x.id == id).findFirst().orElse(null);
+  }
+
+  private boolean has(long id) {
+    return this.data.stream().anyMatch((x) -> x.id == id);
   }
 
   public void applyTransaction(Transaction model, StoreEventType type) {
@@ -157,7 +172,7 @@ public class FilteredTransactions2ChangeTracker implements Cancellable {
         return;
       }
       boolean currentMatch = applyWhere(model);
-      boolean oldMatch = this.data.contains(old.getId());
+      boolean oldMatch = has(old.getId());
       if (currentMatch == oldMatch) {
         if (!(currentMatch) && !(oldMatch)) {
           return;
@@ -179,14 +194,14 @@ public class FilteredTransactions2ChangeTracker implements Cancellable {
   }
 
   private void createInsertChange(Transaction model) {
-    data.add(model.getId());
+    data.add(new FilteredTransactions2Data(model.getId(), model.getCustomer().getId()));
     ListChange insert = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(insert);
   }
 
   private void createUpdateChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    if (!(has(id))) {
       return;
     }
     ListChange update = new ListChange(this.id, -1, -1, ListChangeType.Changed, model);
@@ -195,11 +210,24 @@ public class FilteredTransactions2ChangeTracker implements Cancellable {
 
   private void createDeleteChange(Transaction model) {
     long id = model.getId();
-    if (!(data.contains(id))) {
+    FilteredTransactions2Data existing = find(id);
+    if (existing == null) {
       return;
     }
-    data.remove(id);
+    data.remove(existing);
     ListChange delete = new ListChange(this.id, -1, -1, ListChangeType.Removed, model);
     changesConsumer.writeListChange(delete);
+  }
+
+  private void applyWhereCustomer(long id, Customer customer) {
+    /*
+    TODO: Extract only relevant part of expression
+    */
+    boolean matched = base.getDouble(0) >= inputs.amount && customer.getAge() >= 55l;
+    if (!(matched)) {
+      /*
+      TODO: Get from repository and create delete change
+      */
+    }
   }
 }

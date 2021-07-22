@@ -22,55 +22,29 @@ import store.StoreEventType;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class ConditionalOrderedTransactionsChangeTracker implements Cancellable {
-  private abstract class OrderBy {
+  private class OrderBy<T extends Comparable<T>> {
+    T _orderBy0;
     long id;
-  }
-  
-  private class OrderByAmount extends OrderBy {
-    double _orderBy0;
     
-    public OrderByAmount(double _orderBy0, long id) {
+    public OrderBy(T _orderBy0, long id) {
       this._orderBy0 = _orderBy0;
     }
     
-    public boolean fallsBefore(double _orderBy0) {
-      if (this._orderBy0 < _orderBy0) {
+    public boolean fallsBefore(T _orderBy0) {
+      if (this._orderBy0.compareTo(_orderBy0) < 0) {
         return true;
       }
-      if (this._orderBy0 > _orderBy0) {
+      if (this._orderBy0.compareTo(_orderBy0) > 0) {
         return false;
       }
       return true;
     }
     
-    public void update(double _orderBy0) {
+    public void update(T _orderBy0) {
       this._orderBy0 = _orderBy0;
     }
   }
   
-  private class OrderByAge extends OrderBy {
-    long _orderBy0;
-
-    public OrderByAge(long _orderBy0, long id) {
-      this._orderBy0 = _orderBy0;
-      this.id = id;
-    }
-    
-    public boolean fallsBefore(long _orderBy0) {
-      if (this._orderBy0 < _orderBy0) {
-        return true;
-      }
-      if (this._orderBy0 > _orderBy0) {
-        return false;
-      }        
-      return true;
-    }
-
-    public void update(long _orderBy0) {
-      this._orderBy0 = _orderBy0;
-    }
-  }
-
   private long id;
   private List<Long> data;
   private List<OrderBy> orderBy = ListExt.List();
@@ -104,12 +78,12 @@ public class ConditionalOrderedTransactionsChangeTracker implements Cancellable 
         initialData.items.stream()
             .map((x) -> {
               if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AMOUNT) {
-                return new OrderByAmount(x.getAmount(), x.getId());
+                return new OrderBy<Double>(x.getAmount(), x.getId());
+              } else if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AGE) {
+                return new OrderBy<Long>(x.getCustomer().getAge(), x.getId());
+              } else {
+                return new OrderBy<Double>(x.getAmount(), x.getId());
               }
-              if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AGE) {
-                return new OrderByAge(x.getCustomer().getAge(), x.getId());
-              }
-              return new OrderByAmount(x.getAmount(), x.getId());
             })
             .collect(Collectors.toList());
     long id = IdGenerator.getNext();
@@ -165,38 +139,27 @@ public class ConditionalOrderedTransactionsChangeTracker implements Cancellable 
   }
 
   private void createInsertChange(Transaction model) {
-    if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AMOUNT) {
-      insertInAmountOrder(model);
-    } else {
-      // if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AGE)
-      insertInAgeOrder(model);
+    long id = model.getId();
+    Comparable<?> _orderBy0 = getSortBy(model);
+    long index = 0;
+    int orderBySize = this.orderBy.size();
+    while (index < orderBySize && this.orderBy.get(((int) index)).fallsBefore(_orderBy0)) {
+      index++;
     }
+    data.add(((int) index), model.getId());
+    this.orderBy.add(((int) index), new OrderBy(_orderBy0, id));
+    
     ListChange insert = new ListChange(this.id, -1, -1, ListChangeType.Added, model);
     changesConsumer.writeListChange(insert);
   }
   
-  private void insertInAmountOrder(Transaction model) {
-    long id = model.getId();
-    double _orderBy0 = model.getAmount();
-    long index = 0;
-    int orderBySize = this.orderBy.size();
-    while (index < orderBySize && ((OrderByAmount) this.orderBy.get(((int) index))).fallsBefore(_orderBy0)) {
-      index++;
+  private Comparable<?> getSortBy(Transaction model) {
+    if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AMOUNT) {
+      return model.getAmount();
+    } else if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AGE) {
+      return model.getCustomer().getAge();
     }
-    data.add(((int) index), model.getId());
-    this.orderBy.add(((int) index), new OrderByAmount(_orderBy0, id));
-  }
-  
-  private void insertInAgeOrder(Transaction model) {
-    long id = model.getId();
-    long _orderBy0 = model.getCustomer().getAge();
-    long index = 0;
-    int orderBySize = this.orderBy.size();
-    while (index < orderBySize && ((OrderByAge) this.orderBy.get(((int) index))).fallsBefore(_orderBy0)) {
-      index++;
-    }
-    data.add(((int) index), model.getId());
-    this.orderBy.add(((int) index), new OrderByAge(_orderBy0, id));
+    return model.getAmount();
   }
 
   private void createUpdateChange(Transaction model) {
@@ -229,43 +192,22 @@ public class ConditionalOrderedTransactionsChangeTracker implements Cancellable 
       return false;
     }
     int index = this.data.indexOf(id);
-    long newIndex;
-    if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AMOUNT) {
-      newIndex = changePathInAmountOrder(model, index);
-    } else {
-      // if (this.inputs.sortBy == ConditionalOrderedTransactionsSortBy.AGE)
-      newIndex = changePathInAgeOrder(model, index);
+    long newIndex = 0;
+ 
+    Comparable<?> _orderBy0 = getSortBy(model);
+    
+    int orderBySize = this.orderBy.size();
+    while (newIndex < orderBySize && this.orderBy.get(((int) newIndex)).fallsBefore(_orderBy0)) {
+      newIndex++;
     }
+    Collections.swap(data, index, ((int) newIndex));
+    Collections.swap(this.orderBy, index, ((int) newIndex));
+    this.orderBy.get(((int) newIndex)).update(_orderBy0);
+    
     ListChange change =
         ListChange.forPathChange(
             id, -1, -1, ListChangeType.Changed, ((int) index), ((int) newIndex));
     this.changesConsumer.writeListChange(change);
     return true;
-  }
-  
-  private long changePathInAmountOrder(Transaction model, int index) {
-    double _orderBy0 = model.getAmount();
-    long newIndex = 0;
-    int orderBySize = this.orderBy.size();
-    while (newIndex < orderBySize && ((OrderByAmount) this.orderBy.get(((int) newIndex))).fallsBefore(_orderBy0)) {
-      newIndex++;
-    }
-    Collections.swap(data, index, ((int) newIndex));
-    Collections.swap(this.orderBy, index, ((int) newIndex));
-    ((OrderByAmount) this.orderBy.get(((int) newIndex))).update(_orderBy0);
-    return newIndex;
-  }
-  
-  private long changePathInAgeOrder(Transaction model, int index) {
-    long _orderBy0 = model.getCustomer().getAge();
-    long newIndex = 0;
-    int orderBySize = this.orderBy.size();
-    while (newIndex < orderBySize && ((OrderByAge) this.orderBy.get(((int) newIndex))).fallsBefore(_orderBy0)) {
-      newIndex++;
-    }
-    Collections.swap(data, index, ((int) newIndex));
-    Collections.swap(this.orderBy, index, ((int) newIndex));
-    ((OrderByAge) this.orderBy.get(((int) newIndex))).update(_orderBy0);
-    return newIndex;
   }
 }

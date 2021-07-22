@@ -1,0 +1,8 @@
+(OptionSet TxnOrder {
+    options [
+        (AMOUNT {})
+        (GENDER {})
+        (NAME {})
+        (AGE {})
+    ]
+})

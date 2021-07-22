@@ -1,0 +1,13 @@
+(DataQuery ConditionalOrderedTransactions {
+    inputs [
+        (sortBy {
+            type ({
+                optionSet #TxnOrder
+            })
+        })
+    ]
+    query `
+        Transaction.all.orderBy((t) => inputs.sortBy == AMOUNT ? t.amount : (inputs.sortBy == AGE ? t.customer.age : t.amount))
+    `
+    enableSync true
+})
